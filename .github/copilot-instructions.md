@@ -1,0 +1,4 @@
+- Project: SGPA & CGPA Calculator PWA
+- Main files: `index.html`, `styles.css`, `script.js`, `manifest.json`, `sw.js`, `server.js`, `README.md`
+- The app is a Progressive Web App with offline support, multiple semester SGPA/CGPA tracking, dark mode, charts, and local storage.
+- Run the app locally using `npm start` and open `http://localhost:8080`.

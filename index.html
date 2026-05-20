@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="A professional SGPA and CGPA calculator Progressive Web App for B.Tech students." />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icons/icon-192.svg" />
+    <title>SGPA & CGPA Calculator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero-panel">
+        <div>
+          <p class="eyebrow">Academic Toolkit</p>
+          <h1>SGPA & CGPA Calculator</h1>
+          <p class="hero-copy">Track semester performance, calculate your cumulative CGPA, and export reports with one polished student dashboard.</p>
+        </div>
+        <div class="header-actions">
+          <button id="install-btn" class="btn btn-outline" hidden>Install App</button>
+          <label class="theme-label" for="theme-picker">Theme</label>
+          <select id="theme-picker" class="theme-picker" aria-label="Choose theme">
+            <option value="red-black">Red Black Neon</option>
+            <option value="electric-blue">Electric Blue</option>
+            <option value="cyber-magenta">Cyber Magenta</option>
+            <option value="acid-green">Acid Green</option>
+            <option value="violet-grid">Violet Grid</option>
+            <option value="orange-pulse">Orange Pulse</option>
+          </select>
+          <label class="theme-label" for="grading-system-picker">Grading</label>
+          <select id="grading-system-picker" class="theme-picker" aria-label="Choose grading system">
+            <option value="standard-btech">Standard B.Tech</option>
+            <option value="vtu">VTU 10-point</option>
+            <option value="anna-university">Anna University</option>
+            <option value="jntu">JNTU Pattern</option>
+            <option value="custom-7point">Custom 7-point</option>
+          </select>
+        </div>
+      </header>
+
+      <section class="summary-grid">
+        <article class="summary-card glass-card">
+          <div class="card-top">
+            <span class="stat-icon">🧮</span>
+            <div>
+              <span class="card-label">Total Subjects</span>
+              <h2 id="summary-subjects">0</h2>
+            </div>
+          </div>
+          <p class="card-text">Tracks the number of subjects across all semesters.</p>
+        </article>
+        <article class="summary-card glass-card">
+          <div class="card-top">
+            <span class="stat-icon">📊</span>
+            <div>
+              <span class="card-label">Current SGPA</span>
+              <h2 id="summary-current-sgpa">0.00</h2>
+            </div>
+          </div>
+          <p class="card-text">Shows the latest semester SGPA for quick review.</p>
+        </article>
+        <article class="summary-card glass-card">
+          <div class="card-top">
+            <span class="stat-icon">🎓</span>
+            <div>
+              <span class="card-label">Current CGPA</span>
+              <h2 id="overall-cgpa">0.00</h2>
+            </div>
+          </div>
+          <p class="card-text">Weighted average of all semester SGPA values.</p>
+        </article>
+        <article class="summary-card glass-card">
+          <div class="card-top">
+            <span class="stat-icon">🧠</span>
+            <div>
+              <span class="card-label">Total Credits</span>
+              <h2 id="summary-credits">0</h2>
+            </div>
+          </div>
+          <p class="card-text">Total credits across every semester.</p>
+        </article>
+        <article class="summary-card glass-card">
+          <div class="card-top">
+            <span class="stat-icon">📈</span>
+            <div>
+              <span class="card-label">Estimated %</span>
+              <h2 id="summary-percent">0.00%</h2>
+            </div>
+          </div>
+          <p class="card-text">Percentage conversion based on CGPA × 9.5.</p>
+        </article>
+      </section>
+
+      <main class="main-grid">
+        <section class="panel card card-panel">
+          <div class="panel-header">
+            <div>
+              <h2>Semester Tracker</h2>
+              <p>Manage multiple semesters, add subjects, and review semester progress at a glance.</p>
+            </div>
+            <div class="panel-actions">
+              <button id="top-add-semester-btn" class="btn btn-primary">Semester</button>
+              <button id="top-add-subject-btn" class="btn btn-tertiary">Subject</button>
+              <button id="top-delete-semester-btn" class="btn btn-outline btn-danger">Delete</button>
+            </div>
+          </div>
+
+          <div class="semester-tabs" id="semester-tabs"></div>
+          <div id="semester-list" class="semester-list"></div>
+        </section>
+
+        <aside class="panel card side-panel">
+          <div class="panel-header">
+            <div>
+              <h2>CGPA Summary</h2>
+              <p>Review academic statistics and performance trends.</p>
+            </div>
+          </div>
+
+          <div class="metric-row">
+            <span>Best SGPA</span>
+            <strong id="best-sgpa">0.00</strong>
+          </div>
+          <div class="metric-row">
+            <span>Lowest SGPA</span>
+            <strong id="worst-sgpa">0.00</strong>
+          </div>
+          <div class="metric-row">
+            <span>Semester Average</span>
+            <strong id="avg-sgpa">0.00</strong>
+          </div>
+          <div class="metric-row wide">
+            <span>Award</span>
+            <strong id="award-label">Keep going!</strong>
+          </div>
+
+          <div class="chart-card glass-card">
+            <div class="chart-header">
+              <span>Performance Chart</span>
+              <small>SGPA trend across semesters</small>
+            </div>
+            <canvas id="performance-chart" width="520" height="260"></canvas>
+          </div>
+
+          <div class="report-actions">
+            <button id="export-btn" class="btn btn-primary">Export PDF</button>
+            <button id="share-btn" class="btn btn-outline">Copy summary</button>
+            <button id="reset-all-btn" class="btn btn-secondary">Reset All</button>
+          </div>
+        </aside>
+      </main>
+
+      <nav class="bottom-nav">
+        <button type="button" class="nav-pill active">Overview</button>
+        <button type="button" class="nav-pill">Semesters</button>
+        <button type="button" class="nav-pill">Report</button>
+      </nav>
+    </div>
+
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+    <script src="script.js" defer></script>
+  </body>
+</html>

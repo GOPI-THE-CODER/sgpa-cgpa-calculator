@@ -105,6 +105,83 @@ html[data-theme="orange-pulse"] {
   --button-hover: rgba(251, 146, 60, 0.12);
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  color: #1e293b;
+  --bg: #f8fafc;
+  --card: rgba(255, 255, 255, 0.95);
+  --card-border: rgba(51, 65, 85, 0.12);
+  --panel-border: rgba(51, 65, 85, 0.12);
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  --input-bg: rgba(255, 255, 255, 0.6);
+  --input-border: rgba(51, 65, 85, 0.16);
+  --table-row: rgba(51, 65, 85, 0.04);
+  --metric-bg: rgba(51, 65, 85, 0.06);
+  --danger-bg: rgba(239, 68, 68, 0.12);
+  --danger-hover: rgba(239, 68, 68, 0.18);
+  --toast-bg: rgba(255, 255, 255, 0.94);
+  --card-shadow: 0 12px 20px rgba(15, 23, 42, 0.08);
+  --button-hover: rgba(37, 99, 235, 0.08);
+  --faint-border: rgba(51, 65, 85, 0.12);
+}
+
+html[data-theme="light"] select {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%231e293b"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>');
+}
+
+html[data-theme="light"] .theme-picker {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%231e293b"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>');
+}
+
+html[data-theme="light"] .subject-row select,
+html[data-theme="light"] .subject-table select {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%231e293b"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>');
+}
+
+html[data-theme="light"] .btn-primary,
+html[data-theme="light"] .btn-primary:focus {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2);
+}
+
+html[data-theme="light"] .semester-tab.active {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border-color: transparent;
+}
+
+html[data-theme="light"] .semester-tab:hover {
+  background: rgba(37, 99, 235, 0.1);
+}
+
+html[data-theme="light"] .stat-icon {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+}
+
+html[data-theme="light"] select:focus {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: #2563eb;
+}
+
+html[data-theme="light"] .theme-picker:focus {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: #2563eb;
+}
+
+html[data-theme="light"] .subject-row select:focus,
+html[data-theme="light"] .subject-table select:focus {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: #2563eb;
+}
+
 .theme-label {
   display: none;
 }
@@ -116,10 +193,23 @@ html[data-theme="orange-pulse"] {
   background: var(--input-bg);
   color: var(--text-primary);
   padding: 12px 16px;
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%23f8f8ff"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>');
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.theme-picker:hover {
+  border-color: var(--accent-soft);
 }
 
 .theme-picker:focus {
-  outline: 2px solid rgba(255, 255, 255, 0.18);
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 59, 124, 0.1);
 }
 
 * {
@@ -143,6 +233,27 @@ input,
 select {
   font: inherit;
   color: var(--text-primary);
+}
+
+select {
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%23f8f8ff"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 20px;
+  padding-right: 40px;
+  cursor: pointer;
+  transition: all 220ms ease;
+}
+
+select:hover {
+  border-color: var(--accent-soft);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 59, 124, 0.1);
 }
 
 .app-shell {
@@ -439,6 +550,26 @@ select {
   border-radius: 14px;
   color: var(--text-primary);
   padding: 12px 14px;
+  transition: all 220ms ease;
+}
+
+.subject-row select {
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%23f8f8ff"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 18px;
+  padding-right: 36px;
+}
+
+.subject-row select:hover {
+  border-color: var(--accent-soft);
+}
+
+.subject-row select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 59, 124, 0.1);
 }
 
 .subject-row input::placeholder {
@@ -548,6 +679,7 @@ select {
   border-radius: 14px;
   color: var(--text-primary);
   padding: 10px 12px;
+  transition: all 220ms ease;
 }
 
 .subject-table input::placeholder {
@@ -555,12 +687,22 @@ select {
 }
 
 .subject-table select {
-  color: var(--text-primary);
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%23f8f8ff"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 18px;
+  padding-right: 36px;
 }
 
-.subject-table select:hover,
+.subject-table select:hover {
+  border-color: var(--accent-soft);
+}
+
 .subject-table select:focus {
-  background: rgba(255, 255, 255, 0.85);
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 59, 124, 0.1);
 }
 
 .row-action {
@@ -601,8 +743,16 @@ select {
 }
 
 .card-controls input:focus,
-.subject-table input:focus,
-.subject-table select:focus,
+.card-controls input {
+  transition: all 220ms ease;
+}
+
+.card-controls input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 59, 124, 0.1);
+}
+
 .btn:focus,
 .icon-btn:focus {
   outline: 2px solid rgba(99, 102, 241, 0.3);
@@ -758,6 +908,31 @@ select {
   border-color: rgba(255, 184, 0, 0.25);
 }
 
+html[data-theme="light"] .toast {
+  background: rgba(255, 255, 255, 0.96);
+  color: #1e293b;
+  border-color: rgba(51, 65, 85, 0.12);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="light"] .toast-success {
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+html[data-theme="light"] .toast-error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #991b1b;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+html[data-theme="light"] .toast-warn {
+  background: rgba(251, 146, 60, 0.12);
+  color: #92400e;
+  border-color: rgba(251, 146, 60, 0.25);
+}
+
 .offline-shell {
   display: grid;
   place-items: center;
@@ -826,6 +1001,13 @@ select {
 
   .theme-picker {
     min-width: 0;
+    background-position: right 12px center;
+    background-size: 16px;
+  }
+
+  select {
+    background-position: right 10px center;
+    background-size: 16px;
   }
 
   .summary-grid {
@@ -846,6 +1028,18 @@ select {
   .report-actions {
     display: grid;
     gap: 12px;
+  }
+
+  .subject-row select {
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 32px;
+  }
+
+  .subject-table select {
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 32px;
   }
 
   .semester-tabs {

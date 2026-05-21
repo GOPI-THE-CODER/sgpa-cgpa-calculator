@@ -61,7 +61,7 @@ const gradingSystems = {
   }
 };
 
-const themeList = ['red-black', 'electric-blue', 'cyber-magenta', 'acid-green', 'violet-grid', 'orange-pulse'];
+const themeList = ['light', 'red-black', 'electric-blue', 'cyber-magenta', 'acid-green', 'violet-grid', 'orange-pulse'];
 const DEFAULT_GRADING_SYSTEM = 'standard-btech';
 
 function getCurrentGradeScale(systemId) {
@@ -140,7 +140,7 @@ function defaultSemester(index = 1) {
 function buildInitialState() {
   const semesters = [defaultSemester(1)];
   return {
-    theme: localStorage.getItem(THEME_KEY) || 'red-black',
+    theme: localStorage.getItem(THEME_KEY) || 'light',
     semesters,
     selectedSemesterId: semesters[0].id,
     selectedGradingSystem: localStorage.getItem('sgpaCgpaGradingSystem') || 'standard-btech'
@@ -158,7 +158,7 @@ function loadState() {
       const savedSystem = saved.selectedGradingSystem || localStorage.getItem('sgpaCgpaGradingSystem') || 'standard-btech';
       const selectedGradingSystem = gradingSystems[savedSystem] ? savedSystem : 'standard-btech';
       return {
-        theme: localStorage.getItem(THEME_KEY) || 'red-black',
+        theme: localStorage.getItem(THEME_KEY) || 'light',
         semesters,
         selectedSemesterId,
         selectedGradingSystem

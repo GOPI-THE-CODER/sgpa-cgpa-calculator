@@ -193,6 +193,7 @@ function applyTheme(theme) {
   }
   localStorage.setItem(THEME_KEY, theme);
   appState.theme = theme;
+  renderPerformanceChart(true);
 }
 
 function applyGradingSystem(systemId) {
@@ -204,12 +205,13 @@ function applyGradingSystem(systemId) {
   appState.semesters.forEach((semester) => {
     semester.subjects.forEach((subject) => {
       if (!gradingSystems[systemId].grades.some((grade) => grade.label === subject.grade)) {
-        subject.grade = getDefaultGradeLabel();
+        subject.grade = getDefaultGradeLabel(systemId);
       }
     });
   });
   saveState();
-  renderSemesters();
+  renderCurrentSemesterCard();
+  updateSummaryPanel();
 }
 
 function getSemesterMetrics(semester) {
@@ -251,6 +253,54 @@ function setSelectedSemester(id) {
     appState.selectedSemesterId = id;
     saveState();
   }
+}
+
+function preserveScrollPosition(action) {
+  const scrollY = window.scrollY || document.documentElement.scrollTop;
+  action();
+  window.scrollTo({ top: scrollY, left: 0, behavior: 'auto' });
+}
+
+function renderCurrentSemesterCard() {
+  const semester = getSelectedSemester();
+  if (!semester) return;
+
+  const card = createSemesterCard(semester);
+  const existingCard = appElements.semesterList.querySelector('.semester-card');
+
+  if (existingCard) {
+    appElements.semesterList.replaceChild(card, existingCard);
+  } else {
+    appElements.semesterList.appendChild(card);
+  }
+}
+
+function getChartColors() {
+  if (appState.theme === 'light') {
+    return {
+      borderColor: 'rgba(37, 99, 235, 0.9)',
+      backgroundColor: 'rgba(37, 99, 235, 0.16)',
+      pointBackgroundColor: '#ffffff',
+      pointBorderColor: '#2563eb',
+      gridColor: 'rgba(51, 65, 85, 0.12)',
+      tickColor: '#334155',
+      tooltipBg: 'rgba(255, 255, 255, 0.96)',
+      titleColor: '#0f172a',
+      bodyColor: '#0f172a'
+    };
+  }
+
+  return {
+    borderColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255, 59, 124, 0.22)',
+    pointBackgroundColor: 'rgba(255,255,255,0.95)',
+    pointBorderColor: 'rgba(255, 59, 124, 1)',
+    gridColor: 'rgba(255,255,255,0.08)',
+    tickColor: '#d1d5db',
+    tooltipBg: 'rgba(20, 20, 30, 0.95)',
+    titleColor: '#fff',
+    bodyColor: '#f8f8ff'
+  };
 }
 
 function getSummaryStats() {
@@ -364,7 +414,8 @@ function createSemesterCard(semester) {
       }
       semester.subjects = semester.subjects.filter((item) => item.id !== subject.id);
       saveState();
-      renderSemesters();
+      renderCurrentSemesterCard();
+      updateSummaryPanel();
       showToast('Subject removed.');
     });
 
@@ -384,6 +435,17 @@ function updateSemesterMetrics(semester, card) {
 }
 
 function renderSemesterTabs() {
+  const existingTabs = Array.from(appElements.semesterTabs.children);
+  const currentIds = appState.semesters.map((semester) => semester.id);
+  const needsRebuild = existingTabs.length !== currentIds.length || existingTabs.some((tab, index) => tab.dataset.semesterId !== currentIds[index]);
+
+  if (!needsRebuild) {
+    existingTabs.forEach((tab) => {
+      tab.classList.toggle('active', tab.dataset.semesterId === appState.selectedSemesterId);
+    });
+    return;
+  }
+
   appElements.semesterTabs.innerHTML = '';
   appState.semesters.forEach((semester, index) => {
     const tab = document.createElement('button');
@@ -392,6 +454,7 @@ function renderSemesterTabs() {
     tab.textContent = `S${index + 1}`;
     tab.dataset.semesterId = semester.id;
     tab.addEventListener('click', () => {
+      if (appState.selectedSemesterId === semester.id) return;
       setSelectedSemester(semester.id);
       renderSemesters();
     });
@@ -400,14 +463,11 @@ function renderSemesterTabs() {
 }
 
 function renderSemesters() {
-  renderSemesterTabs();
-  appElements.semesterList.innerHTML = '';
-  const semester = getSelectedSemester();
-  if (semester) {
-    const card = createSemesterCard(semester);
-    appElements.semesterList.appendChild(card);
-  }
-  updateSummaryPanel();
+  preserveScrollPosition(() => {
+    renderSemesterTabs();
+    renderCurrentSemesterCard();
+    updateSummaryPanel();
+  });
 }
 
 function updateSummaryPanel() {
@@ -424,9 +484,10 @@ function updateSummaryPanel() {
   renderPerformanceChart();
 }
 
-function renderPerformanceChart() {
+function renderPerformanceChart(forceUpdate = false) {
   const labels = appState.semesters.map((semester, index) => `S${index + 1}`);
   const values = appState.semesters.map((semester) => getSemesterMetrics(semester).sgpa.toFixed(2));
+  const colors = getChartColors();
 
   if (!performanceChart) {
     performanceChart = new Chart(appElements.chartCanvas, {
@@ -438,10 +499,10 @@ function renderPerformanceChart() {
           data: values,
           tension: 0.3,
           borderWidth: 3,
-          borderColor: 'rgba(255,255,255,0.9)',
-          backgroundColor: 'rgba(255, 59, 124, 0.22)',
-          pointBackgroundColor: 'rgba(255,255,255,0.95)',
-          pointBorderColor: 'rgba(255, 59, 124, 1)',
+          borderColor: colors.borderColor,
+          backgroundColor: colors.backgroundColor,
+          pointBackgroundColor: colors.pointBackgroundColor,
+          pointBorderColor: colors.pointBorderColor,
           pointRadius: 5,
           fill: true
         }]
@@ -452,24 +513,24 @@ function renderPerformanceChart() {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(20, 20, 30, 0.95)',
-            titleColor: '#fff',
-            bodyColor: '#f8f8ff',
-            borderColor: 'rgba(255,255,255,0.16)',
+            backgroundColor: colors.tooltipBg,
+            titleColor: colors.titleColor,
+            bodyColor: colors.bodyColor,
+            borderColor: colors.borderColor,
             borderWidth: 1
           }
         },
         scales: {
           x: {
-            grid: { color: 'rgba(255,255,255,0.08)' },
-            ticks: { color: '#d1d5db' }
+            grid: { color: colors.gridColor },
+            ticks: { color: colors.tickColor }
           },
           y: {
             beginAtZero: true,
             max: 10,
-            grid: { color: 'rgba(255,255,255,0.08)' },
+            grid: { color: colors.gridColor },
             ticks: {
-              color: '#d1d5db',
+              color: colors.tickColor,
               stepSize: 2
             }
           }
@@ -477,9 +538,26 @@ function renderPerformanceChart() {
       }
     });
   } else {
-    performanceChart.data.labels = labels;
-    performanceChart.data.datasets[0].data = values;
-    performanceChart.update();
+    const chartData = performanceChart.data;
+    const currentData = chartData.datasets[0].data.map((value) => String(value));
+    const newData = values.map(String);
+
+    if (forceUpdate || chartData.labels.join(',') !== labels.join(',') || currentData.join(',') !== newData.join(',')) {
+      chartData.labels = labels;
+      chartData.datasets[0].data = values;
+      chartData.datasets[0].borderColor = colors.borderColor;
+      chartData.datasets[0].backgroundColor = colors.backgroundColor;
+      chartData.datasets[0].pointBackgroundColor = colors.pointBackgroundColor;
+      chartData.datasets[0].pointBorderColor = colors.pointBorderColor;
+      performanceChart.options.plugins.tooltip.backgroundColor = colors.tooltipBg;
+      performanceChart.options.plugins.tooltip.titleColor = colors.titleColor;
+      performanceChart.options.plugins.tooltip.bodyColor = colors.bodyColor;
+      performanceChart.options.scales.x.grid.color = colors.gridColor;
+      performanceChart.options.scales.x.ticks.color = colors.tickColor;
+      performanceChart.options.scales.y.grid.color = colors.gridColor;
+      performanceChart.options.scales.y.ticks.color = colors.tickColor;
+      performanceChart.update();
+    }
   }
 }
 
@@ -628,7 +706,8 @@ function setupEventListeners() {
     const semester = getSelectedSemester();
     semester.subjects.push(defaultSubject());
     saveState();
-    renderSemesters();
+    renderCurrentSemesterCard();
+    updateSummaryPanel();
     showToast('Subject added to current semester.');
   });
 

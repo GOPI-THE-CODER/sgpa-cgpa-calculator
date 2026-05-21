@@ -678,7 +678,24 @@ function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker
       .register('sw.js')
-      .then(() => showToast('Offline caching is ready.'))
+      .then((registration) => {
+        showToast('Offline caching is ready.');
+
+        if (registration.waiting) {
+          showToast('A new version is ready and will activate on the next reload.', 'info');
+        }
+
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              showToast('New app update available. Reload to activate it.', 'info');
+            }
+          });
+        });
+      })
       .catch(() => showToast('Service worker registration failed.'));
   }
 }

@@ -21,6 +21,7 @@ const gradingSystems = {
       { label: 'B', value: 8 },
       { label: 'C', value: 7 },
       { label: 'D', value: 6 },
+      { label: 'E', value: 5 },
       { label: 'F', value: 0 }
     ]
   },

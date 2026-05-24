@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `sgpa-cgpa-pwa-${CACHE_VERSION}`;
 
 const scopeUrl = new URL('.', self.location.href);
@@ -31,44 +31,43 @@ async function getOfflineFallback() {
   return caches.match(OFFLINE_PATH);
 }
 
-async function handleStaticAsset(event) {
-  const request = event.request;
+async function handleNetworkFirst(request) {
+  try {
+    const response = await fetch(request);
+
+    if (response && response.ok) {
+      await cacheResponse(request, response);
+    }
+
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+
+    if (cached) {
+      return cached;
+    }
+
+    return getOfflineFallback();
+  }
+}
+
+async function handleCacheFirst(request) {
   const cached = await caches.match(request);
 
   if (cached) {
-    fetch(request)
-      .then((response) => cacheResponse(request, response))
-      .catch(() => undefined);
     return cached;
   }
 
   try {
     const response = await fetch(request);
-    await cacheResponse(request, response);
-    return response;
-  } catch {
-    const fallback = await getOfflineFallback();
-    if (fallback) {
-      return fallback;
-    }
-    return new Response('Offline', { status: 503, statusText: 'Offline' });
-  }
-}
 
-async function handleNavigation(event) {
-  try {
-    const response = await fetch(event.request);
-    if (!response.ok) {
-      throw new Error('Network response not ok');
+    if (response && response.ok) {
+      await cacheResponse(request, response);
     }
-    await cacheResponse(event.request, response);
+
     return response;
   } catch {
-    const fallback = await getOfflineFallback();
-    if (fallback) {
-      return fallback;
-    }
-    return new Response('Offline', { status: 503, statusText: 'Offline' });
+    return getOfflineFallback();
   }
 }
 
@@ -112,23 +111,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (event.request.mode === 'navigate') {
-    event.respondWith(handleNavigation(event));
+  if (requestUrl.pathname === OFFLINE_PATH) {
+    event.respondWith(handleCacheFirst(event.request));
+    return;
+  }
+
+  if (event.request.mode === 'navigate' || requestUrl.pathname === '/') {
+    event.respondWith(handleNetworkFirst(event.request));
     return;
   }
 
   if (staticAssetPaths.includes(requestUrl.pathname)) {
-    event.respondWith(handleStaticAsset(event));
+    event.respondWith(handleNetworkFirst(event.request));
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(event.request).catch(() => new Response('', { status: 503, statusText: 'Offline' }));
-    })
-  );
+  event.respondWith(handleCacheFirst(event.request));
 });

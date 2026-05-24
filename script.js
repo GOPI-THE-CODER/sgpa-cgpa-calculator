@@ -653,18 +653,15 @@ function registerServiceWorker() {
   navigator.serviceWorker
     .register('sw.js')
     .then((registration) => {
-      if (registration.waiting && navigator.serviceWorker.controller) {
-        registration.waiting.postMessage('SKIP_WAITING');
-      }
-
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
         if (!newWorker) return;
 
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            if (registration.waiting) {
-              registration.waiting.postMessage('SKIP_WAITING');
+            if (!sessionStorage.getItem('sgpaCgpaReloadedForSwUpdate')) {
+              sessionStorage.setItem('sgpaCgpaReloadedForSwUpdate', 'true');
+              window.location.reload();
             }
           }
         });

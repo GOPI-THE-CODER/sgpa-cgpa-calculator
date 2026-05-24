@@ -218,7 +218,7 @@ html[data-theme="light"] .subject-table select:focus {
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 body {
@@ -237,20 +237,41 @@ select {
 
 select {
   appearance: none;
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text-primary);
+  min-height: 46px;
+  line-height: 1.4;
   background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%23f8f8ff"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>');
   background-repeat: no-repeat;
-  background-position: right 10px center;
+  background-position: right 12px center;
   background-size: 20px;
-  padding-right: 40px;
+  padding: 12px 44px 12px 14px;
   cursor: pointer;
-  transition: all 220ms ease;
+  transition: border-color 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
+  position: relative;
+  z-index: 5;
+}
+
+select option {
+  background-color: var(--card);
+  color: var(--text-primary);
+  padding: 10px 12px;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+  background-color: var(--accent-soft);
+  color: var(--text-primary);
 }
 
 select:hover {
   border-color: var(--accent-soft);
 }
 
-select:focus {
+select:focus,
+select:focus-visible {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(255, 59, 124, 0.1);
@@ -366,7 +387,6 @@ select:focus {
 
 .summary-card,
 .card,
-.chart-card,
 .offline-card {
   border-radius: var(--radius);
   border: 1px solid var(--card-border);
@@ -784,30 +804,6 @@ select:focus {
   font-size: 1.22rem;
 }
 
-.chart-card {
-  padding: 18px;
-}
-
-.chart-card canvas {
-    width: 100%;
-    min-height: 260px;
-    display: block;
-}
-
-.chart-header span {
-  display: block;
-  color: var(--accent);
-  font-size: 0.85rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.chart-header small {
-  display: block;
-  margin-top: 6px;
-  color: var(--text-secondary);
-}
-
 .report-actions {
   margin-top: 22px;
   display: grid;
@@ -976,7 +972,6 @@ html[data-theme="light"] .toast-warn {
   .hero-panel,
   .panel,
   .summary-card,
-  .chart-card,
   .offline-card,
   .semester-card {
     padding: 18px;
@@ -1074,10 +1069,6 @@ html[data-theme="light"] .toast-warn {
   .subject-table th,
   .subject-table td {
     padding: 10px 10px;
-  }
-
-  .chart-card canvas {
-    min-height: 220px;
   }
 
   .bottom-nav {

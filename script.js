@@ -106,14 +106,12 @@ const appElements = {
   bestSgpa: document.getElementById('best-sgpa'),
   worstSgpa: document.getElementById('worst-sgpa'),
   avgSgpa: document.getElementById('avg-sgpa'),
-  awardLabel: document.getElementById('award-label'),
-  chartCanvas: document.getElementById('performance-chart')
+  awardLabel: document.getElementById('award-label')
 };
 
 let deferredPrompt = null;
 let appState;
 appState = loadState();
-let performanceChart = null;
 
 function createId() {
   return crypto?.randomUUID?.() || `id-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -193,7 +191,6 @@ function applyTheme(theme) {
   }
   localStorage.setItem(THEME_KEY, theme);
   appState.theme = theme;
-  renderPerformanceChart(true);
 }
 
 function applyGradingSystem(systemId) {
@@ -273,34 +270,6 @@ function renderCurrentSemesterCard() {
   } else {
     appElements.semesterList.appendChild(card);
   }
-}
-
-function getChartColors() {
-  if (appState.theme === 'light') {
-    return {
-      borderColor: 'rgba(37, 99, 235, 0.9)',
-      backgroundColor: 'rgba(37, 99, 235, 0.16)',
-      pointBackgroundColor: '#ffffff',
-      pointBorderColor: '#2563eb',
-      gridColor: 'rgba(51, 65, 85, 0.12)',
-      tickColor: '#334155',
-      tooltipBg: 'rgba(255, 255, 255, 0.96)',
-      titleColor: '#0f172a',
-      bodyColor: '#0f172a'
-    };
-  }
-
-  return {
-    borderColor: 'rgba(255,255,255,0.9)',
-    backgroundColor: 'rgba(255, 59, 124, 0.22)',
-    pointBackgroundColor: 'rgba(255,255,255,0.95)',
-    pointBorderColor: 'rgba(255, 59, 124, 1)',
-    gridColor: 'rgba(255,255,255,0.08)',
-    tickColor: '#d1d5db',
-    tooltipBg: 'rgba(20, 20, 30, 0.95)',
-    titleColor: '#fff',
-    bodyColor: '#f8f8ff'
-  };
 }
 
 function getSummaryStats() {
@@ -481,84 +450,6 @@ function updateSummaryPanel() {
   appElements.worstSgpa.textContent = summary.worstSgpa.toFixed(2);
   appElements.avgSgpa.textContent = summary.averageSgpa.toFixed(2);
   appElements.awardLabel.textContent = determineAward(summary.overallCgpa);
-  renderPerformanceChart();
-}
-
-function renderPerformanceChart(forceUpdate = false) {
-  const labels = appState.semesters.map((semester, index) => `S${index + 1}`);
-  const values = appState.semesters.map((semester) => getSemesterMetrics(semester).sgpa.toFixed(2));
-  const colors = getChartColors();
-
-  if (!performanceChart) {
-    performanceChart = new Chart(appElements.chartCanvas, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: 'SGPA Trend',
-          data: values,
-          tension: 0.3,
-          borderWidth: 3,
-          borderColor: colors.borderColor,
-          backgroundColor: colors.backgroundColor,
-          pointBackgroundColor: colors.pointBackgroundColor,
-          pointBorderColor: colors.pointBorderColor,
-          pointRadius: 5,
-          fill: true
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: colors.tooltipBg,
-            titleColor: colors.titleColor,
-            bodyColor: colors.bodyColor,
-            borderColor: colors.borderColor,
-            borderWidth: 1
-          }
-        },
-        scales: {
-          x: {
-            grid: { color: colors.gridColor },
-            ticks: { color: colors.tickColor }
-          },
-          y: {
-            beginAtZero: true,
-            max: 10,
-            grid: { color: colors.gridColor },
-            ticks: {
-              color: colors.tickColor,
-              stepSize: 2
-            }
-          }
-        }
-      }
-    });
-  } else {
-    const chartData = performanceChart.data;
-    const currentData = chartData.datasets[0].data.map((value) => String(value));
-    const newData = values.map(String);
-
-    if (forceUpdate || chartData.labels.join(',') !== labels.join(',') || currentData.join(',') !== newData.join(',')) {
-      chartData.labels = labels;
-      chartData.datasets[0].data = values;
-      chartData.datasets[0].borderColor = colors.borderColor;
-      chartData.datasets[0].backgroundColor = colors.backgroundColor;
-      chartData.datasets[0].pointBackgroundColor = colors.pointBackgroundColor;
-      chartData.datasets[0].pointBorderColor = colors.pointBorderColor;
-      performanceChart.options.plugins.tooltip.backgroundColor = colors.tooltipBg;
-      performanceChart.options.plugins.tooltip.titleColor = colors.titleColor;
-      performanceChart.options.plugins.tooltip.bodyColor = colors.bodyColor;
-      performanceChart.options.scales.x.grid.color = colors.gridColor;
-      performanceChart.options.scales.x.ticks.color = colors.tickColor;
-      performanceChart.options.scales.y.grid.color = colors.gridColor;
-      performanceChart.options.scales.y.ticks.color = colors.tickColor;
-      performanceChart.update();
-    }
-  }
 }
 
 function showToast(message, type = 'info') {
@@ -754,29 +645,33 @@ function setupEventListeners() {
 }
 
 function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker
-      .register('sw.js')
-      .then((registration) => {
-        showToast('Offline caching is ready.');
-
-        if (registration.waiting) {
-          showToast('A new version is ready and will activate on the next reload.', 'info');
-        }
-
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (!newWorker) return;
-
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              showToast('New app update available. Reload to activate it.', 'info');
-            }
-          });
-        });
-      })
-      .catch(() => showToast('Service worker registration failed.'));
+  if (!('serviceWorker' in navigator)) {
+    return;
   }
+
+  navigator.serviceWorker
+    .register('sw.js')
+    .then((registration) => {
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        registration.waiting.postMessage('SKIP_WAITING');
+      }
+
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (!newWorker) return;
+
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            if (registration.waiting) {
+              registration.waiting.postMessage('SKIP_WAITING');
+            }
+          }
+        });
+      });
+    })
+    .catch(() => {
+      // Ignore registration failures so the app remains usable offline if the browser blocks SW.
+    });
 }
 
 function initializeApp() {

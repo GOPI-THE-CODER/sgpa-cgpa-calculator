@@ -1,20 +1,80 @@
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `sgpa-cgpa-pwa-${CACHE_VERSION}`;
-const OFFLINE_URL = '/offline.html';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/script.js',
-  '/manifest.json',
-  OFFLINE_URL,
-  '/icons/icon-192.svg',
-  '/icons/icon-512.svg'
+
+const scopeUrl = new URL('.', self.location.href);
+const staticAssetPaths = [
+  new URL('./', scopeUrl).pathname,
+  new URL('./index.html', scopeUrl).pathname,
+  new URL('./styles.css', scopeUrl).pathname,
+  new URL('./script.js', scopeUrl).pathname,
+  new URL('./manifest.json', scopeUrl).pathname,
+  new URL('./offline.html', scopeUrl).pathname,
+  new URL('./icons/icon-192.svg', scopeUrl).pathname,
+  new URL('./icons/icon-512.svg', scopeUrl).pathname
 ];
+
+const OFFLINE_PATH = new URL('./offline.html', scopeUrl).pathname;
+
+self.skipWaiting();
+self.clients.claim();
+
+async function cacheResponse(request, response) {
+  if (!response || response.status !== 200 || response.type !== 'basic') {
+    return;
+  }
+
+  const cache = await caches.open(CACHE_NAME);
+  await cache.put(request, response.clone());
+}
+
+async function getOfflineFallback() {
+  return caches.match(OFFLINE_PATH);
+}
+
+async function handleStaticAsset(event) {
+  const request = event.request;
+  const cached = await caches.match(request);
+
+  if (cached) {
+    fetch(request)
+      .then((response) => cacheResponse(request, response))
+      .catch(() => undefined);
+    return cached;
+  }
+
+  try {
+    const response = await fetch(request);
+    await cacheResponse(request, response);
+    return response;
+  } catch {
+    const fallback = await getOfflineFallback();
+    if (fallback) {
+      return fallback;
+    }
+    return new Response('Offline', { status: 503, statusText: 'Offline' });
+  }
+}
+
+async function handleNavigation(event) {
+  try {
+    const response = await fetch(event.request);
+    if (!response.ok) {
+      throw new Error('Network response not ok');
+    }
+    await cacheResponse(event.request, response);
+    return response;
+  } catch {
+    const fallback = await getOfflineFallback();
+    if (fallback) {
+      return fallback;
+    }
+    return new Response('Offline', { status: 503, statusText: 'Offline' });
+  }
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(staticAssetPaths))
   );
 });
 
@@ -28,6 +88,7 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -38,27 +99,36 @@ self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
   const isSameOrigin = requestUrl.origin === self.location.origin;
 
-  if (isSameOrigin && (STATIC_ASSETS.includes(requestUrl.pathname) || requestUrl.pathname === '/')) {
+  if (!isSameOrigin) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
-        return cachedResponse || fetch(event.request).catch(() => caches.match(OFFLINE_URL));
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        return fetch(event.request).catch(() => new Response('', { status: 503, statusText: 'Offline' }));
       })
     );
     return;
   }
 
   if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => response.ok ? response : Promise.reject('Network response not ok'))
-        .catch(() => caches.match(OFFLINE_URL))
-    );
+    event.respondWith(handleNavigation(event));
+    return;
+  }
+
+  if (staticAssetPaths.includes(requestUrl.pathname)) {
+    event.respondWith(handleStaticAsset(event));
     return;
   }
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      return fetch(event.request).catch(() => new Response('', { status: 503, statusText: 'Offline' }));
     })
   );
 });

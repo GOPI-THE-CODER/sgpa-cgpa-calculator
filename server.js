@@ -1,47 +1,51 @@
 const http = require('http');
-const fs = require('fs');
 const path = require('path');
+const fs = require('fs');
 
-const port = Number(process.env.PORT) || 8080;
-const root = path.join(__dirname);
-
-const MIME_TYPES = {
-  '.html': 'text/html',
-  '.css': 'text/css',
-  '.js': 'application/javascript',
-  '.json': 'application/json',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.ico': 'image/x-icon',
-};
-
-const server = http.createServer((req, res) => {
-  const cleanPath = req.url.split('?')[0].replace(/\/\//g, '/');
-  const requestPath = cleanPath === '/' ? '/index.html' : cleanPath;
-  const filePath = path.join(root, decodeURIComponent(requestPath));
-
-  fs.stat(filePath, (err, stats) => {
-    if (err || !stats.isFile()) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('404 - Not Found');
-      return;
-    }
-
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': contentType });
-    fs.createReadStream(filePath).pipe(res);
-  });
-});
+const port = 8080;
+let serverInstance = null;
 
 function startServer(currentPort) {
+  if (serverInstance) {
+    console.warn(`Server is already running on port ${serverInstance.address().port}`);
+    return;
+  }
+
+  const server = http.createServer((req, res) => {
+    const requestPath = decodeURIComponent(req.url.split('?')[0]);
+    const filePath = path.join(__dirname, requestPath === '/' ? 'index.html' : requestPath);
+    const extname = path.extname(filePath);
+    const contentType = {
+      '.html': 'text/html',
+      '.js': 'text/javascript',
+      '.css': 'text/css',
+      '.json': 'application/json',
+      '.png': 'image/png',
+      '.jpg': 'image/jpg',
+      '.wav': 'audio/wav',
+    }[extname] || 'application/octet-stream';
+
+    fs.readFile(filePath, (err, content) => {
+      if (err) {
+        if (err.code === 'ENOENT') {
+          res.writeHead(404, { 'Content-Type': 'text/html' });
+          res.end('<h1>404 Not Found</h1>', 'utf-8');
+        } else {
+          res.writeHead(500);
+          res.end(`Server Error: ${err.code}`);
+        }
+      } else {
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(content, 'utf-8');
+      }
+    });
+  });
+
   server.once('error', (error) => {
-    if (error.code === 'EADDRINUSE' && currentPort === port) {
+    if (error.code === 'EADDRINUSE') {
       const fallbackPort = currentPort + 1;
       console.warn(`Port ${currentPort} is busy. Trying ${fallbackPort} instead.`);
-      server.close(() => {
-        startServer(fallbackPort);
-      });
+      setTimeout(() => startServer(fallbackPort), 100);
       return;
     }
 
@@ -49,6 +53,7 @@ function startServer(currentPort) {
   });
 
   server.listen(currentPort, () => {
+    serverInstance = server;
     console.log(`Serving app at http://localhost:${currentPort}`);
   });
 }

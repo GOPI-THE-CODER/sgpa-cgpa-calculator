@@ -139,7 +139,7 @@ function defaultSemester(index = 1) {
 function buildInitialState() {
   const semesters = [defaultSemester(1)];
   return {
-    theme: localStorage.getItem(THEME_KEY) || 'light',
+    theme: localStorage.getItem(THEME_KEY) || 'red-black',
     semesters,
     selectedSemesterId: semesters[0].id,
     selectedGradingSystem: localStorage.getItem('sgpaCgpaGradingSystem') || 'standard-btech'
@@ -157,7 +157,7 @@ function loadState() {
       const savedSystem = saved.selectedGradingSystem || localStorage.getItem('sgpaCgpaGradingSystem') || 'standard-btech';
       const selectedGradingSystem = gradingSystems[savedSystem] ? savedSystem : 'standard-btech';
       return {
-        theme: localStorage.getItem(THEME_KEY) || 'light',
+        theme: localStorage.getItem(THEME_KEY) || 'red-black',
         semesters,
         selectedSemesterId,
         selectedGradingSystem

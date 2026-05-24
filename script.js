@@ -650,7 +650,7 @@ function registerServiceWorker() {
     return;
   }
 
-  const swUrl = 'sw.js?v=3';
+  const swUrl = 'sw.js?v=4';
 
   navigator.serviceWorker
     .register(swUrl)

@@ -35,11 +35,7 @@ const server = http.createServer((req, res) => {
 });
 
 function startServer(currentPort) {
-  server.listen(currentPort, () => {
-    console.log(`Serving app at http://localhost:${currentPort}`);
-  });
-
-  server.on('error', (error) => {
+  server.once('error', (error) => {
     if (error.code === 'EADDRINUSE' && currentPort === port) {
       const fallbackPort = currentPort + 1;
       console.warn(`Port ${currentPort} is busy. Trying ${fallbackPort} instead.`);
@@ -50,6 +46,10 @@ function startServer(currentPort) {
     }
 
     throw error;
+  });
+
+  server.listen(currentPort, () => {
+    console.log(`Serving app at http://localhost:${currentPort}`);
   });
 }
 

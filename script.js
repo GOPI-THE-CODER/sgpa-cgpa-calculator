@@ -650,8 +650,10 @@ function registerServiceWorker() {
     return;
   }
 
+  const swUrl = 'sw.js?v=3';
+
   navigator.serviceWorker
-    .register('sw.js')
+    .register(swUrl)
     .then((registration) => {
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;

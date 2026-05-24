@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const port = process.env.PORT || 8080;
+const port = Number(process.env.PORT) || 8080;
 const root = path.join(__dirname);
 
 const MIME_TYPES = {
@@ -34,6 +34,23 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(port, () => {
-  console.log(`Serving app at http://localhost:${port}`);
-});
+function startServer(currentPort) {
+  server.listen(currentPort, () => {
+    console.log(`Serving app at http://localhost:${currentPort}`);
+  });
+
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE' && currentPort === port) {
+      const fallbackPort = currentPort + 1;
+      console.warn(`Port ${currentPort} is busy. Trying ${fallbackPort} instead.`);
+      server.close(() => {
+        startServer(fallbackPort);
+      });
+      return;
+    }
+
+    throw error;
+  });
+}
+
+startServer(port);

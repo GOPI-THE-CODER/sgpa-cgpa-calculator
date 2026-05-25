@@ -614,21 +614,56 @@ select:focus-visible {
   transform: translateY(-1px);
 }
 
+
 .semester-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px;
+  grid-template-rows: auto auto;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin-bottom: 10px;
+}
+.semester-summary .metric-label-row {
+  display: contents;
+}
+.semester-summary .metric-value-row {
+  display: contents;
+}
+.semester-summary .metric-label {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  padding: 8px 0 0 0;
+}
+.semester-summary .metric-value {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 600;
+  padding: 0 0 12px 0;
+  color: var(--text-primary);
 }
 
-.metric-pill {
+.cgpa-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.cgpa-metrics-grid > div {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 16px 18px;
-  border-radius: 18px;
   background: var(--metric-bg);
   border: 1px solid var(--faint-border);
+  border-radius: 18px;
+  padding: 14px 0;
+}
+.cgpa-metrics-grid span {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+.cgpa-metrics-grid strong {
+  font-size: 1.22rem;
+  margin-top: 6px;
 }
 
 .semester-card {

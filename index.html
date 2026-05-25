@@ -95,7 +95,7 @@
       </section>
 
       <main class="main-grid">
-        <section class="panel card card-panel">
+        <section class="panel card card-panel" id="overview-section">
           <div class="panel-header">
             <div>
               <h2>Semester Tracker</h2>
@@ -112,43 +112,50 @@
           <div id="semester-list" class="semester-list"></div>
         </section>
 
-        <aside class="panel card side-panel">
+        <aside class="panel card side-panel" id="semesters-section" style="display:none">
           <div class="panel-header">
             <div>
               <h2>CGPA Summary</h2>
               <p>Review academic statistics and performance trends.</p>
             </div>
           </div>
-
-          <div class="metric-row">
-            <span>Best SGPA</span>
-            <strong id="best-sgpa">0.00</strong>
+          <div class="cgpa-metrics-grid">
+            <div>
+              <span>Best SGPA</span>
+              <strong id="best-sgpa">0.00</strong>
+            </div>
+            <div>
+              <span>Lowest SGPA</span>
+              <strong id="worst-sgpa">0.00</strong>
+            </div>
+            <div>
+              <span>Semester Average</span>
+              <strong id="avg-sgpa">0.00</strong>
+            </div>
+            <div>
+              <span>Award</span>
+              <strong id="award-label">Keep going!</strong>
+            </div>
           </div>
-          <div class="metric-row">
-            <span>Lowest SGPA</span>
-            <strong id="worst-sgpa">0.00</strong>
-          </div>
-          <div class="metric-row">
-            <span>Semester Average</span>
-            <strong id="avg-sgpa">0.00</strong>
-          </div>
-          <div class="metric-row wide">
-            <span>Award</span>
-            <strong id="award-label">Keep going!</strong>
-          </div>
-
           <div class="report-actions">
             <button id="export-btn" class="btn btn-primary">Export PDF</button>
             <button id="share-btn" class="btn btn-outline">Copy summary</button>
             <button id="reset-all-btn" class="btn btn-secondary">Reset All</button>
           </div>
         </aside>
+        <section class="panel card card-panel" id="report-section" style="display:none">
+          <div class="panel-header"><h2>Report</h2><p>Export and share your academic report as PDF or text summary.</p></div>
+          <div class="report-actions">
+            <button id="export-btn-2" class="btn btn-primary">Export PDF</button>
+            <button id="share-btn-2" class="btn btn-outline">Copy summary</button>
+          </div>
+        </section>
       </main>
 
       <nav class="bottom-nav">
-        <button type="button" class="nav-pill active">Overview</button>
-        <button type="button" class="nav-pill">Semesters</button>
-        <button type="button" class="nav-pill">Report</button>
+        <button type="button" class="nav-pill active" id="nav-overview">Overview</button>
+        <button type="button" class="nav-pill" id="nav-semesters">Semesters</button>
+        <button type="button" class="nav-pill" id="nav-report">Report</button>
       </nav>
     </div>
 

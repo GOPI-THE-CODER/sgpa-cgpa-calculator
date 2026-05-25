@@ -271,6 +271,56 @@ function renderCurrentSemesterCard() {
   } else {
     appElements.semesterList.appendChild(card);
   }
+
+  // Fix summary layout: headings in one row, values in next row
+  const summary = card.querySelector('.semester-summary');
+  if (summary) {
+    summary.innerHTML = `
+      <div class="metric-label-row">
+        <div class="metric-label">Total Credits</div>
+        <div class="metric-label">Total Points</div>
+        <div class="metric-label">Semester SGPA</div>
+        <div class="metric-label">Estimated %</div>
+      </div>
+      <div class="metric-value-row">
+        <div class="metric-value semester-credit-value">0</div>
+        <div class="metric-value semester-point-value">0.00</div>
+        <div class="metric-value semester-sgpa-value">0.00</div>
+        <div class="metric-value semester-percent-value">0.00%</div>
+      </div>
+    `;
+    updateSemesterMetrics(semester, card);
+  }
+}
+// Navigation logic for bottom nav
+function setupBottomNav() {
+  const navOverview = document.getElementById('nav-overview');
+  const navSemesters = document.getElementById('nav-semesters');
+  const navReport = document.getElementById('nav-report');
+  const overviewSection = document.getElementById('overview-section');
+  const semestersSection = document.getElementById('semesters-section');
+  const reportSection = document.getElementById('report-section');
+  function setActive(tab) {
+    navOverview.classList.remove('active');
+    navSemesters.classList.remove('active');
+    navReport.classList.remove('active');
+    overviewSection.style.display = 'none';
+    semestersSection.style.display = 'none';
+    reportSection.style.display = 'none';
+    if (tab === 'overview') {
+      navOverview.classList.add('active');
+      overviewSection.style.display = '';
+    } else if (tab === 'semesters') {
+      navSemesters.classList.add('active');
+      semestersSection.style.display = '';
+    } else if (tab === 'report') {
+      navReport.classList.add('active');
+      reportSection.style.display = '';
+    }
+  }
+  navOverview.addEventListener('click', () => setActive('overview'));
+  navSemesters.addEventListener('click', () => setActive('semesters'));
+  navReport.addEventListener('click', () => setActive('report'));
 }
 
 function getSummaryStats() {
@@ -678,6 +728,7 @@ function initializeApp() {
   applyTheme(appState.theme);
   setupEventListeners();
   renderSemesters();
+  setupBottomNav();
   registerServiceWorker();
 }
 

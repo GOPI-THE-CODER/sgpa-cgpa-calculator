@@ -1924,6 +1924,10 @@ html[data-theme="light"] .subject-row select[aria-invalid="true"] {
   border-color: var(--accent-strong, #818cf8);
 }
 
+.account-session[data-session-state="offline-unverified"] {
+  border-color: var(--danger, #ff8fb3);
+}
+
 .account-session h2 {
   margin: 0;
   font-size: 1rem;
@@ -2085,6 +2089,16 @@ html[data-theme="light"] .subject-row select[aria-invalid="true"] {
 
 .session-chip[data-session-state="signed-in"]::before {
   background: var(--accent-strong, #818cf8);
+  opacity: 1;
+}
+
+.session-chip[data-session-state="offline-unverified"] {
+  color: var(--danger, #ff8fb3);
+  border-color: var(--danger, #ff8fb3);
+}
+
+.session-chip[data-session-state="offline-unverified"]::before {
+  background: var(--danger, #ff8fb3);
   opacity: 1;
 }
 

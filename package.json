@@ -1,14 +1,19 @@
 {
   "name": "sgpa-cgpa-calculator",
   "version": "1.0.0",
-  "description": "Progressive Web App for B.Tech students to calculate SGPA and CGPA with a modern dashboard.",
-  "main": "server.js",
+  "description": "Progressive Web App for B.Tech students to calculate semester SGPA and overall CGPA with a polished dashboard.",
+  "main": "main.js",
   "scripts": {
     "start": "node server.js",
     "serve": "node server.js",
-    "test": "echo \"No tests configured\" && exit 0"
+    "test": "node --test",
+    "verify:browser": "node tools/browser-verify.js",
+    "electron": "electron ."
   },
   "keywords": ["sgpa", "cgpa", "pwa", "calculator", "education"],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^26.0.0"
+  }
 }

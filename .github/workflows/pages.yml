@@ -11,10 +11,13 @@ on:
       - 'styles.css'
       - 'calculator.js'
       - 'script.js'
+      - 'auth-provider.js'
       - 'sw.js'
       - 'manifest.json'
       - 'offline.html'
+      - 'vendor/**'
       - 'icons/**'
+      - 'tests/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -43,18 +46,35 @@ jobs:
         with:
           node-version: 22
 
+      - name: Require the committed test suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! find tests -name '*.test.js' -print -quit | grep -q .; then
+            echo "::error::No test files were found in tests/"
+            exit 1
+          fi
+
       - name: Run tests without installing dependencies
         run: node --test
+
+      - name: Verify the vendored authentication SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ee3be8de192b97cb1d73d1e95d6b82bb1f6b658c0f97c4ef757fc331996ed3d3  vendor/supabase.js" | sha256sum -c -
+          test -f vendor/supabase-LICENSE.txt
 
       - name: Stage production files
         shell: bash
         run: |
           set -euo pipefail
           rm -rf dist
-          mkdir -p dist/icons
-          cp index.html styles.css calculator.js script.js sw.js \
+          mkdir -p dist/icons dist/vendor
+          cp index.html styles.css calculator.js script.js auth-provider.js sw.js \
              manifest.json offline.html dist/
           cp icons/icon-192.svg icons/icon-512.svg dist/icons/
+          cp vendor/supabase.js vendor/supabase-LICENSE.txt dist/vendor/
 
       - name: Verify exact artifact contents
         shell: bash
@@ -66,9 +86,12 @@ jobs:
             styles.css
             calculator.js
             script.js
+            auth-provider.js
             sw.js
             manifest.json
             offline.html
+            vendor/supabase.js
+            vendor/supabase-LICENSE.txt
             icons/icon-192.svg
             icons/icon-512.svg
           )

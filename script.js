@@ -277,26 +277,32 @@ const confirmDialog = createConfirmDialog();
 
 /* ============================================================
    Account access
-   The sign-in and registration interface. No authentication
-   provider is configured in this build, so the forms validate
-   the input and then report honestly that no provider is
-   available. A password is never stored, never compared and
-   never transmitted, and no local flag is treated as proof of
-   a session.
+   The sign-in and registration interface. Authentication is
+   optional and disabled when no Supabase configuration is
+   present. A password is never stored or compared locally, and
+   a local flag is never treated as proof of a session.
    ============================================================ */
 
 const ACCOUNT_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const ACCOUNT_MIN_PASSWORD_LENGTH = 8;
+const ACCOUNT_NOTICE_DEFAULT =
+  'This build has no server connection, so signing in and signing up are unavailable. Nothing you type here is sent anywhere or stored on this device.';
+const ACCOUNT_NOTICE_CONFIGURED =
+  'Sign in with your email and password. Your plan stays in this browser and is not uploaded or synced in this build.';
 
 function createAccountController() {
   const state = {
     mode: 'sign-in',
     status: 'guest',
     user: null,
-    provider: null
+    provider: null,
+    authProblem: null
   };
 
   let elements = null;
+  let providerUnsubscribe = null;
+  let lastAuthProblemKey = '';
+  let signOutInFlight = false;
 
   function collectElements() {
     const byId = (id) => document.getElementById(id);
@@ -308,6 +314,8 @@ function createAccountController() {
       session: byId('account-session'),
       sessionText: byId('account-session-text'),
       signOutButton: byId('account-signout-btn'),
+      providerTitle: byId('account-provider-title'),
+      providerNotice: byId('account-provider-notice'),
       chip: byId('session-chip'),
       shell: document.querySelector('.app-shell'),
       tabs: [byId('account-tab-signin'), byId('account-tab-signup')],
@@ -445,10 +453,27 @@ function createAccountController() {
       const result =
         mode === 'sign-in' ? await state.provider.signIn(credentials) : await state.provider.signUp(credentials);
 
-      if (result && result.ok) {
-        state.status = 'signed-in';
-        state.user = result.user || { email: credentials.email };
+      if (result && result.ok && !result.pending) {
+        if (typeof state.provider.getState === 'function') {
+          syncProviderState();
+        } else {
+          state.status = 'signed-in';
+          state.user = result.user || { email: credentials.email };
+        }
+        clearAuthProblem();
+        updateProviderNotice();
         return { ok: true, message: result.message || 'Signed in.', user: state.user };
+      }
+
+      if (result && result.ok && result.pending) {
+        state.status = 'guest';
+        state.user = null;
+        renderSession();
+        return { ok: true, pending: true, message: result.message || 'Check your email to continue.' };
+      }
+
+      if (typeof state.provider.getState === 'function') {
+        syncProviderState();
       }
 
       return {
@@ -457,7 +482,7 @@ function createAccountController() {
         message: (result && result.message) || 'That did not work. Please try again.'
       };
     } catch (error) {
-      console.warn('The account provider could not be reached', error);
+      console.warn('The account provider could not be reached');
       return {
         ok: false,
         code: 'failed',
@@ -618,24 +643,85 @@ function createAccountController() {
   function renderSession() {
     const current = ensureElements();
     const signedIn = state.status === 'signed-in' && Boolean(state.user);
+    const unverified = state.status === 'offline-unverified' && Boolean(state.user);
+    const sessionState = signedIn ? 'signed-in' : unverified ? 'offline-unverified' : 'guest';
 
     if (current.chip) {
-      current.chip.dataset.sessionState = signedIn ? 'signed-in' : 'guest';
-      current.chip.textContent = signedIn ? state.user.email : 'Working on this device';
+      current.chip.dataset.sessionState = sessionState;
+      current.chip.textContent = signedIn
+        ? state.user.email
+        : unverified
+          ? 'Session needs verification'
+          : 'Working on this device';
     }
 
     if (current.session) {
-      current.session.dataset.sessionState = signedIn ? 'signed-in' : 'guest';
+      current.session.dataset.sessionState = sessionState;
     }
 
     if (current.sessionText) {
-      current.sessionText.textContent = signedIn
-        ? `Signed in as ${state.user.email}.`
-        : 'You are working as a guest. Everything stays in this browser.';
+      if (signedIn) {
+        current.sessionText.textContent = `Signed in as ${state.user.email}.`;
+      } else if (unverified) {
+        current.sessionText.textContent = `Signed in as ${state.user.email}, but the session could not be verified while offline.`;
+      } else {
+        current.sessionText.textContent = 'You are working as a guest. Everything stays in this browser.';
+      }
     }
 
     if (current.signOutButton) {
-      current.signOutButton.hidden = !signedIn;
+      current.signOutButton.hidden = !(signedIn || unverified);
+    }
+  }
+
+  function clearAuthProblem() {
+    state.authProblem = null;
+    lastAuthProblemKey = '';
+  }
+
+  function reportAuthProblem(problem) {
+    if (!problem || typeof problem.message !== 'string' || !problem.message.trim()) return;
+    const code = problem.code || 'failed';
+    if (code === 'offline' || code === 'superseded') return;
+
+    state.authProblem = { code, message: problem.message };
+    updateProviderNotice();
+
+    const key = code + ':' + problem.message;
+    if (key === lastAuthProblemKey) return;
+    lastAuthProblemKey = key;
+    showToast(problem.message, 'error');
+  }
+
+  function syncProviderState() {
+    if (!state.provider || typeof state.provider.getState !== 'function') return;
+    const next = state.provider.getState();
+    if (!next) return;
+    if (next.status === 'signed-in' || next.status === 'offline-unverified') {
+      state.status = next.status;
+      state.user = next.user || null;
+      clearAuthProblem();
+    } else {
+      state.status = 'guest';
+      state.user = null;
+    }
+  }
+
+  function updateProviderNotice() {
+    const current = ensureElements();
+    if (current.providerTitle) {
+      current.providerTitle.textContent = state.authProblem
+        ? 'Authentication needs attention.'
+        : state.provider
+          ? 'Authentication is optional.'
+          : 'No authentication provider is configured.';
+    }
+    if (current.providerNotice) {
+      current.providerNotice.textContent = state.authProblem
+        ? state.authProblem.message
+        : state.provider
+          ? ACCOUNT_NOTICE_CONFIGURED
+          : ACCOUNT_NOTICE_DEFAULT;
     }
   }
 
@@ -662,20 +748,69 @@ function createAccountController() {
     return Boolean(current.view && current.view.hidden === false);
   }
 
-  function signOut() {
-    const provider = state.provider;
-    state.status = 'guest';
-    state.user = null;
-    renderSession();
-    showToast('Signed out. The plan on this device is unchanged.', 'info');
-    if (provider && typeof provider.signOut === 'function') {
-      try {
-        provider.signOut();
-      } catch (error) {
-        console.warn('The account provider could not sign out', error);
-      }
+  async function signOut() {
+    if (signOutInFlight) {
+      return { ok: false, code: 'sign-out-in-flight', message: 'Sign-out is already in progress.' };
     }
-    return { ok: true };
+
+    signOutInFlight = true;
+    const current = ensureElements();
+    const button = current.signOutButton;
+    if (button) button.disabled = true;
+
+    try {
+      const provider = state.provider;
+      if (provider) {
+        if (typeof provider.signOut !== 'function') {
+          renderSession();
+          updateProviderNotice();
+          const message = 'We could not sign you out. Your session may still be active. Please try again.';
+          showToast(message, 'error');
+          return { ok: false, code: 'sign-out-unavailable', message };
+        }
+
+        let result = null;
+        try {
+          result = await provider.signOut();
+        } catch (error) {
+          console.warn('The account provider could not sign out');
+        }
+
+        if (typeof provider.getState === 'function') {
+          syncProviderState();
+        }
+
+        if (!result || result.ok !== true) {
+          renderSession();
+          updateProviderNotice();
+          const message =
+            result && typeof result.message === 'string' && result.message
+              ? result.message
+              : 'We could not sign you out. Your session may still be active. Please try again.';
+          showToast(message, 'error');
+          return { ok: false, code: (result && result.code) || 'sign-out-failed', message };
+        }
+
+        state.status = 'guest';
+        state.user = null;
+        clearAuthProblem();
+        renderSession();
+        updateProviderNotice();
+        showToast('Signed out. The plan on this device is unchanged.', 'info');
+        return { ok: true };
+      }
+
+      state.status = 'guest';
+      state.user = null;
+      clearAuthProblem();
+      renderSession();
+      updateProviderNotice();
+      showToast('Signed out. The plan on this device is unchanged.', 'info');
+      return { ok: true };
+    } finally {
+      signOutInFlight = false;
+      if (button) button.disabled = false;
+    }
   }
 
   function bind() {
@@ -744,6 +879,7 @@ function createAccountController() {
       });
     });
 
+    updateProviderNotice();
     renderSession();
   }
 
@@ -758,10 +894,38 @@ function createAccountController() {
     handleSubmit,
     togglePassword,
     renderSession,
-    getState: () => ({ mode: state.mode, status: state.status, user: state.user, providerConfigured: Boolean(state.provider) }),
-    /** Replaces the authentication provider. Used by the automated checks. */
+    reportAuthProblem,
+    getState: () => ({
+      mode: state.mode,
+      status: state.status,
+      user: state.user,
+      providerConfigured: Boolean(state.provider),
+      authProblem: state.authProblem
+    }),
     setProvider(provider) {
+      if (providerUnsubscribe) {
+        providerUnsubscribe();
+        providerUnsubscribe = null;
+      }
       state.provider = provider || null;
+      clearAuthProblem();
+      if (state.provider && typeof state.provider.subscribe === 'function') {
+        providerUnsubscribe = state.provider.subscribe((next) => {
+          if (!next) return;
+          if (next.status === 'signed-in' || next.status === 'offline-unverified') {
+            state.status = next.status;
+            state.user = next.user || null;
+            clearAuthProblem();
+          } else {
+            state.status = 'guest';
+            state.user = null;
+          }
+          renderSession();
+          updateProviderNotice();
+        });
+      }
+      syncProviderState();
+      updateProviderNotice();
       renderSession();
     }
   };
@@ -2040,7 +2204,7 @@ function registerServiceWorker() {
     return;
   }
 
-  const swUrl = 'sw.js?v=10';
+  const swUrl = 'sw.js?v=11';
 
   navigator.serviceWorker
     .register(swUrl)
@@ -2066,6 +2230,56 @@ function registerServiceWorker() {
     });
 }
 
+async function initializeAuthentication() {
+  if (!window.SgpaAuth || typeof window.SgpaAuth.createFromDocument !== 'function') {
+    accountController.setProvider(null);
+    return;
+  }
+
+  if (window.location && window.location.protocol === 'file:') {
+    accountController.setProvider(null);
+    return;
+  }
+
+  let result;
+  try {
+    result = window.SgpaAuth.createFromDocument(document, window);
+  } catch (error) {
+    accountController.setProvider(null);
+    accountController.reportAuthProblem({
+      code: 'configuration-failed',
+      message: 'Authentication configuration could not be read. Check the Supabase settings and reload.'
+    });
+    return;
+  }
+
+  if (!result || !result.provider) {
+    accountController.setProvider(null);
+    if (result && result.reason && result.reason !== 'not-configured' && result.reason !== 'file-origin') {
+      console.warn('Authentication is unavailable:', result.reason);
+      accountController.reportAuthProblem({
+        code: result.reason,
+        message: result.message || 'Authentication is unavailable in this build.'
+      });
+    }
+    return;
+  }
+
+  accountController.setProvider(result.provider);
+  try {
+    const initialized = await result.provider.initialize();
+    if (initialized && initialized.ok === false) {
+      accountController.reportAuthProblem(initialized);
+    }
+  } catch (error) {
+    console.warn('Authentication could not be initialized');
+    accountController.reportAuthProblem({
+      code: 'initialization-failed',
+      message: 'Authentication could not be initialized. Reload and try again.'
+    });
+  }
+}
+
 function initializeApp() {
   applyTheme(appState.theme);
 
@@ -2086,6 +2300,9 @@ function initializeApp() {
   }
 
   registerServiceWorker();
+  initializeAuthentication().catch(() => {
+    console.warn('Authentication could not be initialized');
+  });
 }
 
 initializeApp();

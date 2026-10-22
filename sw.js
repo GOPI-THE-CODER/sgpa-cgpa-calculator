@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v10';
+const CACHE_VERSION = 'v11';
 const CACHE_NAME = `sgpa-cgpa-pwa-${CACHE_VERSION}`;
 
 const scopeUrl = new URL('.', self.location.href);
@@ -6,13 +6,17 @@ const staticAssetPaths = [
   new URL('./', scopeUrl).pathname,
   new URL('./index.html', scopeUrl).pathname,
   new URL('./styles.css', scopeUrl).pathname,
+  new URL('./auth-provider.js', scopeUrl).pathname,
   new URL('./calculator.js', scopeUrl).pathname,
   new URL('./script.js', scopeUrl).pathname,
+  new URL('./vendor/supabase.js', scopeUrl).pathname,
   new URL('./manifest.json', scopeUrl).pathname,
   new URL('./offline.html', scopeUrl).pathname,
   new URL('./icons/icon-192.svg', scopeUrl).pathname,
   new URL('./icons/icon-512.svg', scopeUrl).pathname
 ];
+
+const AUTH_QUERY_KEYS = ['code', 'sb_flow_id', 'error', 'error_code', 'error_description'];
 
 const OFFLINE_PATH = new URL('./offline.html', scopeUrl).pathname;
 
@@ -117,7 +121,15 @@ self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
   const isSameOrigin = requestUrl.origin === self.location.origin;
 
+  if (AUTH_QUERY_KEYS.some((key) => requestUrl.searchParams.has(key))) {
+    return;
+  }
+
   if (!isSameOrigin) {
+    if (requestUrl.hostname.endsWith('.supabase.co')) {
+      return;
+    }
+
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         if (cachedResponse) {

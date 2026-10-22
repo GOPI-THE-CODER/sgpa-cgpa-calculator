@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f172a" />
     <meta name="description" content="A professional SGPA and CGPA calculator Progressive Web App for B.Tech students." />
+    <meta name="sgpa-supabase-url" content="" />
+    <meta name="sgpa-supabase-publishable-key" content="" />
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="icons/icon-192.svg" />
     <title>SGPA & CGPA Calculator</title>
@@ -12,7 +14,7 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'"
     />
-    <link rel="stylesheet" href="styles.css?v=10" />
+    <link rel="stylesheet" href="styles.css?v=11" />
   </head>
   <body>
     <div class="app-shell">
@@ -240,7 +242,7 @@
         </div>
 
         <div class="account-notice" role="note">
-          <p><strong>No authentication provider is configured.</strong> This build has no server connection, so signing in and signing up are unavailable. Nothing you type here is sent anywhere or stored on this device.</p>
+          <p><strong id="account-provider-title">No authentication provider is configured.</strong> <span id="account-provider-notice">This build has no server connection, so signing in and signing up are unavailable. Nothing you type here is sent anywhere or stored on this device.</span></p>
         </div>
 
         <div class="account-grid">
@@ -256,7 +258,7 @@
               <button type="button" class="account-tab" id="account-tab-signup" role="tab" aria-selected="false" aria-controls="account-panel-signup" tabindex="-1">Create account</button>
             </div>
 
-            <form class="account-form" id="account-panel-signin" role="tabpanel" aria-labelledby="account-tab-signin" novalidate>
+            <form class="account-form" id="account-panel-signin" role="tabpanel" aria-labelledby="account-tab-signin" method="post" action="index.html" novalidate>
               <h3>Sign in</h3>
               <div class="account-field">
                 <label for="account-signin-email">Email address</label>
@@ -275,7 +277,7 @@
               <button type="submit" class="btn btn-primary" id="account-signin-submit">Sign in</button>
             </form>
 
-            <form class="account-form" id="account-panel-signup" role="tabpanel" aria-labelledby="account-tab-signup" novalidate hidden>
+            <form class="account-form" id="account-panel-signup" role="tabpanel" aria-labelledby="account-tab-signup" method="post" action="index.html" novalidate hidden>
               <h3>Create an account</h3>
               <div class="account-field">
                 <label for="account-signup-email">Email address</label>
@@ -306,7 +308,9 @@
       </div>
     </section>
 
-    <script src="calculator.js?v=10" defer></script>
-    <script src="script.js?v=10" defer></script>
+    <script src="vendor/supabase.js?v=11" defer></script>
+    <script src="auth-provider.js?v=11" defer></script>
+    <script src="calculator.js?v=11" defer></script>
+    <script src="script.js?v=11" defer></script>
   </body>
 </html>

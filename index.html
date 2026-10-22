@@ -8,20 +8,36 @@
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="icons/icon-192.svg" />
     <title>SGPA & CGPA Calculator</title>
-    <link rel="stylesheet" href="styles.css?v=4" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'"
+    />
+    <link rel="stylesheet" href="styles.css?v=10" />
   </head>
   <body>
     <div class="app-shell">
       <header class="hero-panel">
-        <div>
-          <p class="eyebrow">Academic Toolkit</p>
-          <h1>SGPA & CGPA Calculator</h1>
-          <p class="hero-copy">Track semester performance, calculate your cumulative CGPA, and export reports with one polished student dashboard.</p>
+        <div class="hero-brand">
+          <span class="hero-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+              <path d="M12 3l8 4-8 4-8-4 8-4Z" />
+              <path d="M4 11l8 4 8-4" />
+              <path d="M8 14.5V18c0 1.1 1.8 2 4 2s4-.9 4-2v-3.5" />
+            </svg>
+          </span>
+          <div>
+            <p class="eyebrow">Academic Toolkit</p>
+            <h1>SGPA & CGPA Calculator</h1>
+            <p class="hero-copy">Track semester performance, calculate your cumulative CGPA, and export reports with one polished student dashboard.</p>
+          </div>
         </div>
         <div class="header-actions">
           <button id="install-btn" class="btn btn-outline" hidden>Install App</button>
+          <span class="session-chip" id="session-chip" data-session-state="guest">Working on this device</span>
+          <button id="account-btn" class="btn btn-outline" aria-haspopup="dialog" aria-controls="account-view">Account</button>
           <label class="theme-label" for="theme-picker">Theme</label>
           <select id="theme-picker" class="theme-picker" aria-label="Choose theme">
+            <option value="premium-navy">Premium Navy</option>
             <option value="light">Light</option>
             <option value="red-black">Red Black Neon</option>
             <option value="electric-blue">Electric Blue</option>
@@ -41,10 +57,16 @@
         </div>
       </header>
 
-      <section class="summary-grid">
+      <section class="summary-grid" id="overview">
         <article class="summary-card glass-card">
           <div class="card-top">
-            <span class="stat-icon">🧮</span>
+            <span class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M4 7l8-4 8 4-8 4-8-4Z" />
+                <path d="M4 12l8 4 8-4" />
+                <path d="M4 17l8 4 8-4" />
+              </svg>
+            </span>
             <div>
               <span class="card-label">Total Subjects</span>
               <h2 id="summary-subjects">0</h2>
@@ -54,17 +76,28 @@
         </article>
         <article class="summary-card glass-card">
           <div class="card-top">
-            <span class="stat-icon">📊</span>
+            <span class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M5 20V10" />
+                <path d="M12 20V5" />
+                <path d="M19 20v-7" />
+              </svg>
+            </span>
             <div>
-              <span class="card-label">Current SGPA</span>
-              <h2 id="summary-current-sgpa">0.00</h2>
+              <span class="card-label">Latest Semester SGPA</span>
+              <h2 id="summary-current-sgpa">N/A</h2>
             </div>
           </div>
-          <p class="card-text">Shows the latest semester SGPA for quick review.</p>
+          <p class="card-text">Shows the latest semester in your plan, even when a different semester tab is selected.</p>
         </article>
         <article class="summary-card glass-card">
           <div class="card-top">
-            <span class="stat-icon">🎓</span>
+            <span class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M12 4 2 9l10 5 10-5-10-5Z" />
+                <path d="M6 11v4c0 1.6 2.7 3 6 3s6-1.4 6-3v-4" />
+              </svg>
+            </span>
             <div>
               <span class="card-label">Current CGPA</span>
               <h2 id="overall-cgpa">0.00</h2>
@@ -74,7 +107,13 @@
         </article>
         <article class="summary-card glass-card">
           <div class="card-top">
-            <span class="stat-icon">🧠</span>
+            <span class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <ellipse cx="12" cy="6" rx="7" ry="3" />
+                <path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6" />
+                <path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" />
+              </svg>
+            </span>
             <div>
               <span class="card-label">Total Credits</span>
               <h2 id="summary-credits">0</h2>
@@ -84,7 +123,12 @@
         </article>
         <article class="summary-card glass-card">
           <div class="card-top">
-            <span class="stat-icon">📈</span>
+            <span class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M4 16l5-5 3 3 7-7" />
+                <path d="M15 7h5v5" />
+              </svg>
+            </span>
             <div>
               <span class="card-label">Estimated %</span>
               <h2 id="summary-percent">0.00%</h2>
@@ -95,7 +139,7 @@
       </section>
 
       <main class="main-grid">
-        <section class="panel card card-panel" id="overview-section">
+        <section class="panel card card-panel" id="semesters">
           <div class="panel-header">
             <div>
               <h2>Semester Tracker</h2>
@@ -112,56 +156,157 @@
           <div id="semester-list" class="semester-list"></div>
         </section>
 
-        <aside class="panel card side-panel" id="semesters-section" style="display:none">
+        <aside class="panel card side-panel" id="report">
           <div class="panel-header">
             <div>
               <h2>CGPA Summary</h2>
               <p>Review academic statistics and performance trends.</p>
             </div>
           </div>
-          <div class="cgpa-metrics-grid">
-            <div>
-              <span>Best SGPA</span>
-              <strong id="best-sgpa">0.00</strong>
-            </div>
-            <div>
-              <span>Lowest SGPA</span>
-              <strong id="worst-sgpa">0.00</strong>
-            </div>
-            <div>
-              <span>Semester Average</span>
-              <strong id="avg-sgpa">0.00</strong>
-            </div>
-            <div>
-              <span>Award</span>
-              <strong id="award-label">Keep going!</strong>
-            </div>
+
+          <div class="metric-row">
+            <span>Best SGPA</span>
+            <strong id="best-sgpa">0.00</strong>
           </div>
+          <div class="metric-row">
+            <span>Lowest SGPA</span>
+            <strong id="worst-sgpa">0.00</strong>
+          </div>
+          <div class="metric-row">
+            <span>Semester Average</span>
+            <strong id="avg-sgpa">0.00</strong>
+          </div>
+          <div class="metric-row wide">
+            <span>Performance Note</span>
+            <strong id="award-label">Keep going!</strong>
+          </div>
+
+          <figure class="trend-panel" id="trend-figure" aria-labelledby="trend-chart-title">
+            <figcaption class="trend-header">
+              <h3 class="trend-title" id="trend-chart-title">SGPA Trend</h3>
+              <p class="trend-subtitle">Actual SGPA per semester, plotted in order.</p>
+            </figcaption>
+            <div class="trend-canvas" id="trend-chart"></div>
+            <table class="visually-hidden" id="trend-table">
+              <caption>SGPA by semester</caption>
+              <thead>
+                <tr><th scope="col">Semester</th><th scope="col">SGPA</th></tr>
+              </thead>
+              <tbody id="trend-table-body"></tbody>
+            </table>
+          </figure>
+
           <div class="report-actions">
-            <button id="export-btn" class="btn btn-primary">Export PDF</button>
-            <button id="share-btn" class="btn btn-outline">Copy summary</button>
-            <button id="reset-all-btn" class="btn btn-secondary">Reset All</button>
+            <button id="export-btn" class="btn btn-primary"><svg class="btn-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6" /><path d="M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2" /><path d="M6 14h12v7H6z" /></svg>Print / Save as PDF</button>
+            <button id="share-btn" class="btn btn-outline"><svg class="btn-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>Copy summary</button>
+            <button id="reset-all-btn" class="btn btn-secondary"><svg class="btn-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>Reset All</button>
           </div>
         </aside>
-        <section class="panel card card-panel" id="report-section" style="display:none">
-          <div class="panel-header"><h2>Report</h2><p>Export and share your academic report as PDF or text summary.</p></div>
-          <div class="report-actions">
-            <button id="export-btn-2" class="btn btn-primary">Export PDF</button>
-            <button id="share-btn-2" class="btn btn-outline">Copy summary</button>
-          </div>
-        </section>
       </main>
 
-      <nav class="bottom-nav">
-        <button type="button" class="nav-pill active" id="nav-overview">Overview</button>
-        <button type="button" class="nav-pill" id="nav-semesters">Semesters</button>
-        <button type="button" class="nav-pill" id="nav-report">Report</button>
+      <section class="panel card data-panel" id="data">
+        <div class="panel-header">
+          <div>
+            <h2>Backup &amp; data</h2>
+            <p>Your plan is stored on this device only. Export a JSON backup to keep a copy or move it to another browser.</p>
+          </div>
+          <div class="panel-actions">
+            <button id="export-backup-btn" class="btn btn-primary"><svg class="btn-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>Export backup</button>
+            <button id="import-backup-btn" class="btn btn-outline"><svg class="btn-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9" /><path d="m7 14 5-5 5 5" /><path d="M5 3h14" /></svg>Import backup</button>
+            <input id="import-backup-input" type="file" accept="application/json,.json" class="visually-hidden" aria-label="Choose a backup file to import" />
+          </div>
+        </div>
+        <p class="data-note" id="data-note">Backups contain your semester plan only — no account details and nothing from outside this app.</p>
+      </section>
+
+      <nav class="bottom-nav" aria-label="Page sections">
+        <a class="nav-pill active" href="#overview" aria-current="location"><svg class="nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>Overview</a>
+        <a class="nav-pill" href="#semesters"><svg class="nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z" /><path d="m3 13 9 5 9-5" /></svg>Semesters</a>
+        <a class="nav-pill" href="#report"><svg class="nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10" /><path d="M10 20V4" /><path d="M16 20v-7" /><path d="M22 20H2" /></svg>Report</a>
       </nav>
     </div>
 
     <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
-    <script src="script.js?v=4" defer></script>
+    <section class="account-view" id="account-view" hidden role="dialog" aria-modal="true" aria-labelledby="account-view-title">
+      <div class="account-shell">
+        <div class="account-header">
+          <div>
+            <p class="eyebrow">Account access</p>
+            <h1 id="account-view-title" tabindex="-1">Sign in or create an account</h1>
+            <p class="hero-copy">An account is optional. The calculator works without one and your plan never leaves this device in this build.</p>
+          </div>
+          <button id="account-close-btn" class="btn btn-outline">Back to calculator</button>
+        </div>
+
+        <div class="account-notice" role="note">
+          <p><strong>No authentication provider is configured.</strong> This build has no server connection, so signing in and signing up are unavailable. Nothing you type here is sent anywhere or stored on this device.</p>
+        </div>
+
+        <div class="account-grid">
+          <section class="panel card account-panel" aria-labelledby="account-session-title">
+            <div class="account-session" id="account-session" data-session-state="guest">
+              <h2 id="account-session-title">Session</h2>
+              <p id="account-session-text">You are working as a guest. Everything stays in this browser.</p>
+              <button id="account-signout-btn" class="btn btn-outline" hidden>Sign out</button>
+            </div>
+
+            <div class="account-tabs" role="tablist" aria-label="Account form">
+              <button type="button" class="account-tab" id="account-tab-signin" role="tab" aria-selected="true" aria-controls="account-panel-signin" tabindex="0">Sign in</button>
+              <button type="button" class="account-tab" id="account-tab-signup" role="tab" aria-selected="false" aria-controls="account-panel-signup" tabindex="-1">Create account</button>
+            </div>
+
+            <form class="account-form" id="account-panel-signin" role="tabpanel" aria-labelledby="account-tab-signin" novalidate>
+              <h3>Sign in</h3>
+              <div class="account-field">
+                <label for="account-signin-email">Email address</label>
+                <input id="account-signin-email" name="email" type="email" autocomplete="email" inputmode="email" required aria-describedby="account-signin-email-error" />
+                <p class="field-error" id="account-signin-email-error" hidden></p>
+              </div>
+              <div class="account-field">
+                <label for="account-signin-password">Password</label>
+                <div class="password-field">
+                  <input id="account-signin-password" name="password" type="password" autocomplete="current-password" required minlength="8" aria-describedby="account-signin-password-error" />
+                  <button type="button" class="password-toggle" id="account-signin-password-toggle" data-password-toggle="account-signin-password" aria-pressed="false">Show password</button>
+                </div>
+                <p class="field-error" id="account-signin-password-error" hidden></p>
+              </div>
+              <p class="account-feedback" id="account-signin-feedback" role="status" aria-live="polite"></p>
+              <button type="submit" class="btn btn-primary" id="account-signin-submit">Sign in</button>
+            </form>
+
+            <form class="account-form" id="account-panel-signup" role="tabpanel" aria-labelledby="account-tab-signup" novalidate hidden>
+              <h3>Create an account</h3>
+              <div class="account-field">
+                <label for="account-signup-email">Email address</label>
+                <input id="account-signup-email" name="email" type="email" autocomplete="email" inputmode="email" required aria-describedby="account-signup-email-error" />
+                <p class="field-error" id="account-signup-email-error" hidden></p>
+              </div>
+              <div class="account-field">
+                <label for="account-signup-password">Password</label>
+                <div class="password-field">
+                  <input id="account-signup-password" name="password" type="password" autocomplete="new-password" required minlength="8" aria-describedby="account-signup-password-error" />
+                  <button type="button" class="password-toggle" id="account-signup-password-toggle" data-password-toggle="account-signup-password" aria-pressed="false">Show password</button>
+                </div>
+                <p class="field-error" id="account-signup-password-error" hidden></p>
+              </div>
+              <div class="account-field">
+                <label for="account-signup-confirm">Confirm password</label>
+                <div class="password-field">
+                  <input id="account-signup-confirm" name="confirmPassword" type="password" autocomplete="new-password" required minlength="8" aria-describedby="account-signup-confirm-error" />
+                  <button type="button" class="password-toggle" id="account-signup-confirm-toggle" data-password-toggle="account-signup-confirm" aria-pressed="false">Show password</button>
+                </div>
+                <p class="field-error" id="account-signup-confirm-error" hidden></p>
+              </div>
+              <p class="account-feedback" id="account-signup-feedback" role="status" aria-live="polite"></p>
+              <button type="submit" class="btn btn-primary" id="account-signup-submit">Create account</button>
+            </form>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <script src="calculator.js?v=10" defer></script>
+    <script src="script.js?v=10" defer></script>
   </body>
 </html>

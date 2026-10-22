@@ -1,0 +1,113 @@
+name: Deploy static artifact to GitHub Pages
+
+# All action refs are pinned to reviewed commit SHAs.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'styles.css'
+      - 'calculator.js'
+      - 'script.js'
+      - 'sw.js'
+      - 'manifest.json'
+      - 'offline.html'
+      - 'icons/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Validate and stage artifact
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Run tests without installing dependencies
+        run: node --test
+
+      - name: Stage production files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          mkdir -p dist/icons
+          cp index.html styles.css calculator.js script.js sw.js \
+             manifest.json offline.html dist/
+          cp icons/icon-192.svg icons/icon-512.svg dist/icons/
+
+      - name: Verify exact artifact contents
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required=(
+            index.html
+            styles.css
+            calculator.js
+            script.js
+            sw.js
+            manifest.json
+            offline.html
+            icons/icon-192.svg
+            icons/icon-512.svg
+          )
+
+          for file in "${required[@]}"; do
+            if [ ! -f "dist/$file" ]; then
+              echo "::error::Missing required artifact file: $file"
+              exit 1
+            fi
+          done
+
+          actual="$(cd dist && find . -type f -print | sort)"
+          expected="$(printf '%s\n' "${required[@]}" | sed 's|^|./|' | sort)"
+
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::Artifact contents do not match the production allowlist"
+            diff -u <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") || true
+            exit 1
+          fi
+
+          echo "Artifact contains exactly ${#required[@]} expected files."
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

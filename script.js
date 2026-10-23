@@ -303,6 +303,7 @@ function createAccountController() {
   let providerUnsubscribe = null;
   let lastAuthProblemKey = '';
   let signOutInFlight = false;
+  let submitInFlight = false;
 
   function collectElements() {
     const byId = (id) => document.getElementById(id);
@@ -496,6 +497,14 @@ function createAccountController() {
     const fields = ensureElements().forms[mode];
     if (!fields) return { ok: false, reason: 'missing-elements' };
 
+    if (submitInFlight) {
+      return {
+        ok: false,
+        code: 'submit-in-flight',
+        message: 'A sign-in or account request is already in progress. Please wait.'
+      };
+    }
+
     clearErrors(mode);
     setFeedback(mode, '');
 
@@ -511,22 +520,27 @@ function createAccountController() {
       return { ok: false, reason: 'validation', errors: validation.errors };
     }
 
-    setBusy(mode, true);
-    const result = await submit(mode, { email: validation.email, password: fields.password.value });
-    setBusy(mode, false);
+    submitInFlight = true;
+    try {
+      setBusy(mode, true);
+      const result = await submit(mode, { email: validation.email, password: fields.password.value });
 
-    if (!result.ok) {
-      setFeedback(mode, result.message, 'error');
-      showToast(result.message, 'error');
+      if (!result.ok) {
+        setFeedback(mode, result.message, 'error');
+        showToast(result.message, 'error');
+        return result;
+      }
+
+      if (fields.password) fields.password.value = '';
+      if (fields.confirm) fields.confirm.value = '';
+      setFeedback(mode, result.message, 'success');
+      showToast(result.message, 'success');
+      renderSession();
       return result;
+    } finally {
+      submitInFlight = false;
+      setBusy(mode, false);
     }
-
-    if (fields.password) fields.password.value = '';
-    if (fields.confirm) fields.confirm.value = '';
-    setFeedback(mode, result.message, 'success');
-    showToast(result.message, 'success');
-    renderSession();
-    return result;
   }
 
   function setMode(mode, options) {

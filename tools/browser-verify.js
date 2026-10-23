@@ -7,9 +7,10 @@
  * (Chrome or Edge) driven through the Chrome DevTools Protocol over Node's
  * built-in WebSocket. No package is installed, no external site is contacted,
  * and nothing in the application is modified: the script only reads state and
- * drives the UI the way a user would.
+ * drives the UI the way a user would. With --local-auth, requests are limited
+ * to the local server and the exact configured Supabase origin.
  *
- *   node tools/browser-verify.js [--out <dir>] [--port <n>] [--keep-artifacts]
+ *   node tools/browser-verify.js [--out <dir>] [--port <n>] [--local-auth <config-path>] [--keep-artifacts]
  *
  * Exit codes
  *   0  every check that could run passed
@@ -22,6 +23,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { decodePng, contrastRatio, medianColour, parseColour } = require('./png.js');
+const { loadLocalAuthConfig } = require('../server.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const HOST = '127.0.0.1';
@@ -164,7 +166,8 @@ function parseArgs(argv) {
     debugPort: 9334,
     keepArtifacts: false,
     browser: null,
-    contrastOnly: false
+    contrastOnly: false,
+    localAuth: null
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -172,14 +175,37 @@ function parseArgs(argv) {
     else if (arg === '--port') options.port = Number(argv[++i]) || options.port;
     else if (arg === '--debug-port') options.debugPort = Number(argv[++i]) || options.debugPort;
     else if (arg === '--browser') options.browser = path.resolve(argv[++i] || '');
-    else if (arg === '--contrast-only') options.contrastOnly = true;
+    else if (arg === '--local-auth') {
+      const configPath = argv[++i];
+      if (!configPath) {
+        console.error('--local-auth requires a configuration file path');
+        process.exit(1);
+      }
+      options.localAuth = path.resolve(configPath);
+    } else if (arg === '--contrast-only') options.contrastOnly = true;
     else if (arg === '--keep-artifacts') options.keepArtifacts = true;
     else if (arg === '--help' || arg === '-h') {
-      console.log('usage: node tools/browser-verify.js [--out <dir>] [--port <n>] [--debug-port <n>] [--browser <path>] [--contrast-only] [--keep-artifacts]');
+      console.log('usage: node tools/browser-verify.js [--out <dir>] [--port <n>] [--debug-port <n>] [--browser <path>] [--local-auth <config-path>] [--contrast-only] [--keep-artifacts]');
       process.exit(0);
     }
   }
   return options;
+}
+
+function contentSecurityPolicy(connectSource) {
+  return [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "img-src 'self' data:",
+    "font-src 'self'",
+    `connect-src ${connectSource}`,
+    "manifest-src 'self'",
+    "worker-src 'self'",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "form-action 'self'"
+  ].join('; ');
 }
 
 function findBrowser() {
@@ -273,11 +299,23 @@ async function waitForPort(url, timeoutMs = 20000) {
 
 /* -------------------------------------------------------------- processes */
 
-function startServer(port) {
-  const child = spawn(process.execPath, ['-e', `require(${JSON.stringify(path.join(ROOT, 'server.js'))}).startServer(${port})`], {
-    cwd: ROOT,
-    stdio: 'ignore'
-  });
+function startServer(port, localAuthFile) {
+  const childEnvironment = { ...process.env };
+  if (localAuthFile) childEnvironment.SGPA_LOCAL_AUTH_FILE = localAuthFile;
+  else delete childEnvironment.SGPA_LOCAL_AUTH_FILE;
+
+  const child = spawn(
+    process.execPath,
+    [
+      '-e',
+      `require(${JSON.stringify(path.join(ROOT, 'server.js'))}).startServer(${port}, { localAuthFile: process.env.SGPA_LOCAL_AUTH_FILE || null })`
+    ],
+    {
+      cwd: ROOT,
+      stdio: 'ignore',
+      env: childEnvironment
+    }
+  );
   return child;
 }
 
@@ -788,6 +826,67 @@ async function checkAccountInterface(cdp) {
     providerMessage: submitted.feedback.trim().slice(0, 64),
     validationMessage: invalid.emailError.trim(),
     storedKeys: stored.keys.length
+  };
+}
+
+async function checkConfiguredAccountInterface(cdp) {
+  await cdp.evaluate("document.getElementById('account-btn').click(); true");
+  await sleep(450);
+
+  const view = await cdp.evaluate(`(() => {
+    const view = document.getElementById('account-view');
+    const shell = document.querySelector('.app-shell');
+    const title = document.getElementById('account-provider-title');
+    const notice = document.getElementById('account-provider-notice');
+    const password = document.getElementById('account-signin-password');
+    const label = document.querySelector('label[for="account-signin-email"]');
+    const signOut = document.getElementById('account-signout-btn');
+    return {
+      viewVisible: !view.hidden,
+      shellHidden: Boolean(shell && shell.hidden),
+      title: title ? title.textContent.trim() : '',
+      notice: notice ? notice.textContent.replace(/\\s+/g, ' ').trim() : '',
+      chipState: document.getElementById('session-chip').dataset.sessionState,
+      signOutHidden: signOut.hidden,
+      passwordType: password.type,
+      emailLabel: label ? label.textContent.trim() : ''
+    };
+  })()`);
+
+  assert(view.viewVisible, 'the configured account view did not open');
+  assert(view.shellHidden, 'the calculator stayed visible behind the configured account view');
+  assert(/authentication is optional/i.test(view.title), 'the configured provider title is not shown');
+  assert(/sign in with your email and password/i.test(view.notice), 'the configured provider notice is not shown');
+  assert(!/no authentication provider is configured/i.test(view.notice), 'the configured provider is still reported as missing');
+  assert(view.chipState === 'guest', 'a session was claimed before signing in');
+  assert(view.signOutHidden === true, 'a sign-out control is offered without a session');
+  assert(view.passwordType === 'password', 'the configured password field is not masked');
+  assert(view.emailLabel.length > 0, 'the configured email field has no label');
+
+  await cdp.evaluate("document.getElementById('account-signin-submit').click(); true");
+  await sleep(350);
+  const invalid = await cdp.evaluate(`(() => ({
+    emailError: (document.getElementById('account-signin-email-error') || {}).textContent || '',
+    emailInvalid: document.getElementById('account-signin-email').getAttribute('aria-invalid')
+  }))()`);
+  assert(/email/i.test(invalid.emailError), 'an empty configured form did not report the missing email');
+  assert(invalid.emailInvalid === 'true', 'the invalid configured field is not marked');
+
+  await cdp.evaluate("document.getElementById('account-close-btn').click(); true");
+  await sleep(350);
+  const closed = await cdp.evaluate(`(() => ({
+    viewHidden: document.getElementById('account-view').hidden,
+    shellHidden: Boolean(document.querySelector('.app-shell').hidden),
+    focusId: document.activeElement ? document.activeElement.id : ''
+  }))()`);
+  assert(closed.viewHidden === true, 'the configured account view did not close');
+  assert(closed.shellHidden === false, 'the calculator did not come back');
+  assert(closed.focusId === 'account-btn', 'the focus did not return to the account button');
+
+  return {
+    providerTitle: view.title,
+    validationMessage: invalid.emailError.trim(),
+    sessionState: view.chipState
   };
 }
 
@@ -1800,6 +1899,16 @@ async function checkContrast(cdp, appUrl, outDir) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
+  let localAuth = null;
+
+  if (options.localAuth) {
+    try {
+      localAuth = loadLocalAuthConfig(options.localAuth);
+    } catch (error) {
+      console.error(`Local authentication configuration rejected: ${error.message}`);
+      process.exit(1);
+    }
+  }
 
   if (typeof WebSocket !== 'function') {
     console.error('SKIP: this script needs a global WebSocket (Node 22 or newer).');
@@ -1827,7 +1936,7 @@ async function main() {
       server = null;
     },
     async start() {
-      server = startServer(options.port);
+      server = startServer(options.port, options.localAuth);
       await waitForPort(appUrl, 15000);
     }
   };
@@ -1838,7 +1947,7 @@ async function main() {
     if (await waitForPort(appUrl, 400)) {
       throw new Error(`port ${options.port} is already serving something; re-run with --port <n> to pick another`);
     }
-    server = startServer(options.port);
+    server = startServer(options.port, options.localAuth);
     if (!(await waitForPort(appUrl, 20000))) throw new Error('the development server did not start');
 
     browserProcess = spawn(
@@ -1871,8 +1980,41 @@ async function main() {
     await cdp.send('Runtime.enable');
     await cdp.send('Network.enable');
     await cdp.send('Log.enable');
-    // Only the local origin may be used; no external request is allowed.
-    await cdp.send('Network.setBlockedURLs', { urls: ['https://*'] });
+    const blockedExternalRequests = [];
+
+    if (localAuth) {
+      const appOrigin = new URL(appUrl).origin;
+      cdp.on('Fetch.requestPaused', (params) => {
+        let requestUrl = null;
+        try {
+          requestUrl = new URL(params.request.url);
+        } catch (error) {
+          /* a request without a parseable URL is not allowed */
+        }
+
+        const allowed =
+          requestUrl !== null &&
+          (requestUrl.protocol === 'data:' ||
+            requestUrl.protocol === 'blob:' ||
+            requestUrl.origin === appOrigin ||
+            requestUrl.origin === localAuth.url);
+
+        if (allowed) {
+          cdp.send('Fetch.continueRequest', { requestId: params.requestId }).catch(() => {});
+        } else {
+          blockedExternalRequests.push(params.request.url);
+          cdp.send('Fetch.failRequest', {
+            requestId: params.requestId,
+            errorReason: 'BlockedByClient'
+          }).catch(() => {});
+        }
+      });
+      await cdp.send('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
+    } else {
+      // Only the local origin may be used; no external request is allowed.
+      await cdp.send('Network.setBlockedURLs', { urls: ['https://*'] });
+    }
+
     await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
 
     // Content Security Policy violations are reported through the log.
@@ -1895,6 +2037,7 @@ async function main() {
       startedAt: new Date().toISOString(),
       appUrl,
       outputDir: options.out,
+      authMode: localAuth ? 'local-configured' : 'disabled',
       checks: []
     };
 
@@ -1923,26 +2066,18 @@ async function main() {
       await run('subject safeguards and save/restore', () => checkSubjectsAndPersistence(cdp, appUrl));
       await run('service worker and offline reload', () => checkServiceWorkerAndOffline(cdp, appUrl, serverControl));
       await run('keyboard focus and accessible names', () => checkKeyboardAndAccessibility(cdp));
-      await run('account interface', () => checkAccountInterface(cdp));
+      if (localAuth) {
+        await run('account interface with local authentication configured', () => checkConfiguredAccountInterface(cdp));
+      } else {
+        await run('account interface', () => checkAccountInterface(cdp));
+      }
       await run('mocked auth callback and sign-out failures', () => checkMockedAuthFailures(cdp));
       await run('confirmation dialog behaviour', () => checkDialogBehaviour(cdp));
       await run('printable report and print stylesheet', () => checkPrintReport(cdp, appUrl, options.out));
       await run('backup export and import round trip', () => checkBackupRoundTrip(cdp, options.out));
       await run('toast contrast in every theme', () => checkToastContrast(cdp));
       await run('content security policy', async () => {
-        const policy = [
-          "default-src 'self'",
-          "script-src 'self'",
-          "style-src 'self'",
-          "img-src 'self' data:",
-          "font-src 'self'",
-          "connect-src 'self'",
-          "manifest-src 'self'",
-          "worker-src 'self'",
-          "object-src 'none'",
-          "base-uri 'none'",
-          "form-action 'self'"
-        ].join('; ');
+        const policy = contentSecurityPolicy(localAuth ? `'self' ${localAuth.url}` : "'self'");
 
         const state = await cdp.evaluate(`(() => {
           const meta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
@@ -1977,6 +2112,17 @@ async function main() {
         return { policy, violations: cspViolations.length, externals: state.externals.length, offlinePolicy: offline.hasMeta };
       });
     }
+
+    if (localAuth) {
+      await run('external request allowlist', async () => {
+        assert(
+          blockedExternalRequests.length === 0,
+          `blocked ${blockedExternalRequests.length} unexpected external request(s): ${blockedExternalRequests.slice(0, 3).join(' | ')}`
+        );
+        return { allowedOrigins: [new URL(appUrl).origin, localAuth.url], blocked: 0 };
+      });
+    }
+
     await run('theme contrast (WCAG 1.4.3 / 1.4.11)', () => checkContrast(cdp, appUrl, options.out));
 
     report.finishedAt = new Date().toISOString();

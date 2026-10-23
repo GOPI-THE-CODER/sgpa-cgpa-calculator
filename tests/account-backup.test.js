@@ -574,6 +574,44 @@ test('a configured provider drives the session state and the sign-out control', 
   assert.equal(app.byId('account-signout-btn').hidden, true);
 });
 
+test('a credential request ignores duplicate submissions until it finishes', async () => {
+  const app = createApp();
+  const controller = app.harness.accountController;
+  let finish;
+  let signInCalls = 0;
+  const pending = new Promise((resolve) => {
+    finish = resolve;
+  });
+
+  controller.setProvider({
+    signIn: async ({ email }) => {
+      signInCalls += 1;
+      await pending;
+      return { ok: true, user: { email } };
+    },
+    signUp: async () => ({ ok: false, code: 'unused', message: 'unused' }),
+    signOut: async () => ({ ok: true })
+  });
+
+  app.byId('account-signin-email').value = 'student@example.com';
+  app.byId('account-signin-password').value = 'correct-horse';
+
+  const first = controller.handleSubmit('sign-in', { preventDefault() {} });
+  assert.equal(signInCalls, 1);
+  assert.equal(app.byId('account-signin-submit').disabled, true, 'the submit button is disabled in flight');
+
+  const duplicate = await controller.handleSubmit('sign-in', { preventDefault() {} });
+  assert.equal(duplicate.ok, false);
+  assert.equal(duplicate.code, 'submit-in-flight');
+  assert.equal(signInCalls, 1, 'only one request reaches the provider');
+
+  finish();
+  const result = await first;
+  assert.equal(result.ok, true);
+  assert.equal(controller.getState().status, 'signed-in');
+  assert.equal(app.byId('account-signin-submit').disabled, false, 'the form is usable again afterwards');
+});
+
 test('credential forms cannot fall back to a GET submission', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 

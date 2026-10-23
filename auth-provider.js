@@ -77,6 +77,7 @@
       const payload = decodeJwtPayload(key);
       if (!payload) return { ok: false, reason: 'invalid-key' };
       if (payload.role === 'service_role') return { ok: false, reason: 'secret-key' };
+      if (payload.role !== 'anon') return { ok: false, reason: 'invalid-key' };
       return { ok: true };
     }
 

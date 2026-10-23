@@ -163,6 +163,8 @@ test('configuration accepts only hosted Supabase origins, publishable keys and t
     ['https://user:pass@demo.supabase.co', 'sb_publishable_abc123', 'invalid-url'],
     ['https://demo.supabase.co', 'sb_secret_abc123', 'secret-key'],
     ['https://demo.supabase.co', jwt({ role: 'service_role' }), 'secret-key'],
+    ['https://demo.supabase.co', jwt({ role: 'authenticated' }), 'invalid-key'],
+    ['https://demo.supabase.co', jwt({}), 'invalid-key'],
     ['https://demo.supabase.co', 'a.b.c', 'invalid-key'],
     ['https://demo.supabase.co', 'not-a-key', 'invalid-key']
   ];

@@ -204,6 +204,7 @@ When configured, the following behaviour applies:
 - **A session is not proof by itself.** A stored session is reported as signed in only after an online `getUser()` succeeds. While offline, a stored session is shown as `offline-unverified` with the email for context, and the interface explicitly says it could not be verified.
 - **A completed auth callback URL is cleaned** after initialization: `code`, `sb_flow_id`, `error`, `error_code` and `error_description` are removed while unrelated query parameters and the hash are preserved.
 - **Sign-out is local** (`scope: 'local'`). It ends this browser's session and leaves the plan untouched.
+- **Credential requests do not stack.** While a sign-in or sign-up request is in flight, repeated submissions are ignored and the submit control stays disabled until the request finishes.
 - **The plan stays local.** Signing in does not upload, download or sync the plan. Backup export/import remains the only way to move it.
 - **No password is stored or compared locally.** Supabase stores its own session token in browser storage; the application never reads it as proof of sign-in and never puts a password or token in a backup or log.
 
@@ -218,9 +219,55 @@ When configured, the following behaviour applies:
    <meta name="sgpa-supabase-url" content="https://<PROJECT_REF>.supabase.co" />
    <meta name="sgpa-supabase-publishable-key" content="sb_publishable_..." />
    ```
-   A legacy anon JWT is also accepted. A secret key (`sb_secret_...`) or a JWT with the `service_role` role is rejected.
+   A legacy JWT is accepted only when its `role` is `anon`. Secret keys (`sb_secret_...`), service-role JWTs and JWTs with any other role are rejected.
 4. Add the exact project origin to `connect-src` in `index.html` only, as described under **Content Security Policy**. Keep `offline.html` at `connect-src 'self'`.
 5. Keep the SDK pinned and verified. The vendored bundle is `@supabase/supabase-js@2.118.0`; CI checks that `vendor/supabase.js` has SHA-256 `ee3be8de192b97cb1d73d1e95d6b82bb1f6b658c0f97c4ef757fc331996ed3d3`.
+6. The default branch intentionally ships with authentication disabled, and CI enforces that baseline. In the release that intentionally enables authentication, update or remove `tools/verify-auth-disabled.js` and the exact CSP baseline after the live checks pass. Do not weaken the guard for an unverified build.
+
+### Testing authentication locally without changing the production baseline
+
+The development server can enable a local-only Supabase configuration. The on-disk `index.html`, `offline.html`, the production CSP and the auth-disabled guard stay unchanged. The configuration is injected only into the locally served `/` and `/index.html` responses, which are sent with `Cache-Control: no-store`.
+
+The configuration file must stay outside the repository. Only a publishable key or anon JWT is accepted; `sb_secret_...` keys and JWTs with the `service_role` role are rejected before the server starts. The key is never logged or served as a static file.
+
+1. Create a JSON file outside the repository, for example in a temporary directory:
+
+   ```json
+   {
+     "url": "https://<PROJECT_REF>.supabase.co",
+     "publishableKey": "sb_publishable_..."
+   }
+   ```
+
+2. Start the local server with that file:
+
+   ```powershell
+   npm run start:local-auth -- "C:\path\outside\the\repository\supabase.local.json"
+   ```
+
+   This is equivalent to `node server.js --local-auth <config-path>`. Normal `npm start` remains auth-disabled.
+
+3. Run the browser checks in local-auth mode:
+
+   ```powershell
+   npm run verify:browser:auth -- "C:\path\outside\the\repository\supabase.local.json"
+   ```
+
+   Default `npm run verify:browser` remains unchanged. In local-auth mode the harness permits network access only to the local server and the exact configured Supabase origin, and it does not attempt a real sign-in.
+
+4. Perform these live checks manually; the automated suite does not register accounts, send email or change project settings:
+   - Register a disposable test account and confirm the email.
+   - Sign in and confirm the PKCE callback returns to the exact local application directory and the auth parameters are removed from the URL.
+   - Reload and confirm the session is restored and verified online.
+   - Wait for or force a token refresh and confirm the session remains valid.
+   - Sign out and confirm the local session ends while the plan is unchanged.
+   - Submit a wrong password and confirm a safe error with no session.
+   - Go offline and confirm a cached session is labelled `offline-unverified`, never treated as verified.
+   - Confirm no password, token, secret key or service-role key appears in browser storage, backups, logs or URLs.
+
+5. Remove the temporary configuration file and clear the local site data. Re-run `npm test`, `node tools/verify-auth-disabled.js` and `npm run verify:browser` to confirm the production baseline is still disabled.
+
+A local Supabase CLI stack is also accepted through its local URL, for example `http://127.0.0.1:54321`, with its local anon key. Keep the redirect URL set to the exact local application directory.
 
 The Electron wrapper opens the application from `file://`; authentication is disabled there, because no allowed Supabase origin can be configured for that origin and PKCE requires a secure browser context.
 

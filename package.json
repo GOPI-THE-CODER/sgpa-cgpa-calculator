@@ -5,9 +5,11 @@
   "main": "main.js",
   "scripts": {
     "start": "node server.js",
+    "start:local-auth": "node server.js --local-auth",
     "serve": "node server.js",
     "test": "node --test",
     "verify:browser": "node tools/browser-verify.js",
+    "verify:browser:auth": "node tools/browser-verify.js --local-auth",
     "electron": "electron ."
   },
   "keywords": ["sgpa", "cgpa", "pwa", "calculator", "education"],
